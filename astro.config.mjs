@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 
+import remarkTypography from './src/lib/remark-typography.ts';
 import { site } from './src/site.config.ts';
 
 export default defineConfig({
@@ -33,8 +34,15 @@ export default defineConfig({
   },
 
   markdown: {
+    /*
+     * Stage 1 of the text pipeline. Astro registers remark-smartypants ahead of
+     * any user plugin, so remarkTypography below receives a tree whose quotes
+     * and dashes are already correct and applies stages 2-4 on top:
+     * nbsp -> widont -> normalize. See src/lib/typography.ts.
+     */
     smartypants: true,
     gfm: true,
+    remarkPlugins: [remarkTypography],
   },
 
   devToolbar: { enabled: false },

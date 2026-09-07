@@ -34,6 +34,22 @@ jobs:
       - name: Content typography lint
         run: bun run lint:typography
 
+      # The text pipeline and the lint rules. Both are regex-heavy and both are
+      # easy to break in a way no page reveals until the wrong viewport width.
+      - name: Unit tests
+        run: bun test
+
+      # The woff2 files, fonts.css, the preload module and data/fonts.json all
+      # have to describe the same fonts. A stale hash is a silent 404 that falls
+      # back to Arial and looks fine until you look at a spec column.
+      - name: Fonts match the manifest
+        run: bun run verify:fonts
+
+      # Token contrast, and the reserved use of alignment-target green. axe
+      # covers rendered pages, but only once PREVIEW_URL is set.
+      - name: Design tokens
+        run: bun run verify:tokens
+
       # vercel.json is committed so redirect changes are reviewable in the
       # diff. This fails if it drifts from data/redirects.csv.
       - name: vercel.json is current

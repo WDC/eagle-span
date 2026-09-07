@@ -7,36 +7,56 @@
  * entire argument is precision, and they are invisible in review once you have
  * seen the page twice. So the build fails on them instead.
  *
- * Scope: content and copy only (src/content, src/pages, src/components).
- * Code identifiers are not prose and are skipped.
+ * This gate and the text pipeline in `src/lib/typography.ts` overlap on
+ * purpose, and they are not redundant:
+ *
+ *   * The pipeline fixes the rendered page. It cannot fix the copy once it
+ *     leaves this repo — a meta description pasted into a spreadsheet, a
+ *     Google Business Profile post, a heading someone copies off the page.
+ *   * This gate fixes the source, so what a writer typed is what ships. It
+ *     also catches the cases the pipeline deliberately will not touch, because
+ *     they are ambiguous after smartypants has run: a bare `24"` is either an
+ *     inch mark or a closing quote, and the pipeline guesses wrong either way.
+ *
+ * Scope: content and copy only (src/content, src/pages, src/components,
+ * src/layouts). Code identifiers are not prose and are skipped.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 
+// Single source of truth, shared with the pipeline so the gate and the fix
+// cannot disagree about what counts as a unit.
+import { UNITS } from '../src/lib/typography.ts';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ROOTS = ['src/content', 'src/pages', 'src/components', 'src/layouts'];
 const EXTS = new Set(['.md', '.mdoc', '.markdoc', '.astro', '.yaml', '.yml', '.json']);
+
+const UNIT_ALTERNATION = UNITS.join('|');
+
+/** Markup, not prose: an import, an attribute value, a YAML or JSON key. */
+const isCode = (l) => /^\s*(import|export)\b/.test(l) || /[\w-]+=("|')/.test(l);
 
 const RULES = [
   {
     id: 'straight-double-quote',
     re: /"/g,
     message: 'straight double quote — use “ ” (or &ldquo;/&rdquo;)',
-    /* Attribute values and imports are markup, not prose. */
-    skipLine: (l) => /^\s*(import|export)\b/.test(l) || /[\w-]+=("|')/.test(l) || /^\s*[-\w"']+\s*:\s/.test(l),
+    skipLine: (l) => isCode(l) || /^\s*[-\w"']+\s*:\s/.test(l),
   },
   {
     id: 'straight-apostrophe',
+    // Catches `RV's` and `don't` in the migrated copy.
     re: /(?<=\w)'(?=\w)/g,
     message: 'straight apostrophe — use ’',
-    skipLine: (l) => /^\s*(import|export)\b/.test(l) || /[\w-]+=("|')/.test(l),
+    skipLine: isCode,
   },
   {
     id: 'double-hyphen',
     re: /(?<!<!)--(?!>)/g,
     message: 'double hyphen — use an em dash —',
-    skipLine: (l) => /^\s*(import|export)\b/.test(l) || /--[\w-]+\s*:/.test(l) || /var\(--/.test(l),
+    skipLine: (l) => isCode(l) || /--[\w-]+\s*:/.test(l) || /var\(--/.test(l),
   },
   {
     id: 'lowercase-x-multiplier',
@@ -46,12 +66,12 @@ const RULES = [
   {
     id: 'missing-nbsp-before-unit',
     // A measurement must never wrap between the figure and its unit.
-    re: /\b\d+(?:\.\d+)?[ ](?:in|ft|lb|lbs|psi|mm|cm|kg|mi|hp|qt|gal|°|″|′)\b/g,
+    re: new RegExp(String.raw`\b\d+(?:[.,]\d+)?[ ](?:${UNIT_ALTERNATION}|°|″|′)\b`, 'g'),
     message: 'plain space before a unit — use a non-breaking space (\\u00a0)',
   },
   {
     id: 'ascii-degree',
-    re: /\b\d+(?:\.\d+)?\s*deg\b/gi,
+    re: /\b\d+(?:\.\d+)?\s*deg(?:rees?)?\b/gi,
     message: 'spelled-out "deg" — use °',
   },
   {
@@ -61,11 +81,56 @@ const RULES = [
     message: "apostrophe used as a prime — use ′ (and ″ for inches)",
   },
   {
+    /*
+     * The pipeline will not touch this one: after smartypants a bare 24" is
+     * indistinguishable from a sentence that ends on a figure inside a
+     * quotation. So it has to be right in the source.
+     */
+    id: 'ascii-double-prime',
+    re: /\d\s*["”](?=\W|$)/g,
+    message: 'quote mark used as an inch mark — use ″ (U+2033)',
+    skipLine: (l) => isCode(l) || /^\s*[-\w"']+\s*:\s/.test(l),
+  },
+  {
     id: 'ellipsis',
     re: /\.\.\./g,
     message: 'three periods — use …',
   },
+  {
+    /*
+     * Hours are NAP content and appear on every page. `8:00-17:00` with a
+     * hyphen is a subtraction; the range takes an en dash.
+     */
+    id: 'hyphen-range',
+    re: /\b\d{1,2}(?::\d{2})?\s*-\s*\d{1,2}(?::\d{2})?\b/g,
+    message: 'hyphen between figures — a range takes an en dash –',
+    // A phone number, a date and a CSS custom property are not ranges.
+    skipLine: (l) =>
+      isCode(l) || /\d{3}-\d{3,4}/.test(l) || /\d{4}-\d{2}-\d{2}/.test(l) || /var\(--/.test(l),
+  },
+  {
+    id: 'ascii-multiplication-symbol',
+    re: /\b\d+(?:\.\d+)?\s*\*\s*\d/g,
+    message: 'asterisk as a multiplier — use × (U+00D7)',
+  },
+  {
+    id: 'ascii-trademark',
+    re: /\((?:tm|c|r)\)/gi,
+    message: 'ASCII trademark mark — use ™ © ®',
+    skipLine: isCode,
+  },
+  {
+    /*
+     * Two spaces after a full stop is a typewriter habit that survives copy
+     * migration and shows up as a visible gap at this measure.
+     */
+    id: 'double-space',
+    re: /(?<=[.!?])[ ]{2,}(?=[A-Z“‘])/g,
+    message: 'two spaces after a sentence — use one',
+  },
 ];
+
+export { RULES };
 
 function walk(dir, out = []) {
   let entries;
@@ -78,12 +143,23 @@ function walk(dir, out = []) {
   return out;
 }
 
-const files = ROOTS.flatMap((r) => walk(resolve(root, r)));
-let failures = 0;
+/** Every violation on a line, as `{ rule, column }`. Exported for the tests. */
+export function lintLine(line) {
+  const found = [];
+  for (const rule of RULES) {
+    if (rule.skipLine?.(line)) continue;
+    rule.re.lastIndex = 0;
+    // Every occurrence, not just the first: one pass should be enough to fix a
+    // file rather than peeling the same line one character at a time.
+    for (const m of line.matchAll(rule.re)) found.push({ rule, column: m.index + 1 });
+  }
+  return found;
+}
 
-for (const file of files) {
+function lintFile(file) {
   const lines = readFileSync(file, 'utf8').split('\n');
   let inFrontmatterFence = false;
+  let failures = 0;
 
   lines.forEach((line, i) => {
     // Astro component script blocks are code, not copy.
@@ -91,19 +167,29 @@ for (const file of files) {
     if (inFrontmatterFence && extname(file) === '.astro') return;
     if (/^\s*(\/\/|\/\*|\*)/.test(line)) return;
 
-    for (const rule of RULES) {
-      if (rule.skipLine?.(line)) continue;
-      rule.re.lastIndex = 0;
-      const m = rule.re.exec(line);
-      if (m) {
-        failures += 1;
-        console.error(
-          `${relative(root, file)}:${i + 1}:${m.index + 1}  ${rule.id}  ${rule.message}\n    ${line.trim()}`,
-        );
-      }
+    for (const { rule, column } of lintLine(line)) {
+      failures += 1;
+      console.error(
+        `${relative(root, file)}:${i + 1}:${column}  ${rule.id}  ${rule.message}\n    ${line.trim()}`,
+      );
     }
   });
+
+  return failures;
 }
 
-console.log(`\ntypography: ${files.length} files checked, ${failures} problem${failures === 1 ? '' : 's'}.`);
-if (failures) process.exit(1);
+function main(roots = ROOTS) {
+  const files = roots.flatMap((r) => walk(resolve(root, r)));
+  const failures = files.reduce((n, file) => n + lintFile(file), 0);
+  console.log(
+    `\ntypography: ${files.length} files checked, ${RULES.length} rules, ` +
+    `${failures} problem${failures === 1 ? '' : 's'}.`,
+  );
+  return failures;
+}
+
+// Importable for the tests; still a CLI when run directly.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const extra = process.argv.slice(2);
+  if (main(extra.length ? extra : ROOTS)) process.exit(1);
+}
