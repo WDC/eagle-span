@@ -156,9 +156,15 @@ export function normalize(text: string): string {
   return (
     text
       .replace(/\.{3,}/g, '…')
+      /*
+       * `(tm)` has no other meaning, so it converts anywhere. `(c)` and `(r)`
+       * do — an enumerated list runs (a), (b), (c) — so they convert only when
+       * attached to a name, or when a copyright year follows.
+       */
       .replace(/\(tm\)/gi, '™')
-      .replace(/\(c\)/gi, '©')
-      .replace(/\(r\)/gi, '®')
+      .replace(/(?<=\w)\(c\)/gi, '©')
+      .replace(/\(c\)(?=\s*\d{4}\b)/gi, '©')
+      .replace(/(?<=\w)\(r\)/gi, '®')
       // 24 x 8 — a lowercase letter standing in for a multiplication sign.
       .replace(new RegExp(String.raw`(${FIGURE})\s*[x×]\s*(?=${FIGURE})`, 'g'), `$1${NBSP}×${NBSP}`)
       // 12 degrees / 12 deg / 12 ° — one degree sign, closed up.

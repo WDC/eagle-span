@@ -74,6 +74,14 @@ describe('normalize', () => {
     expect(normalize('camber at 2 degrees')).toBe('camber at 2°');
     expect(normalize('toe of 0.5 deg')).toBe('toe of 0.5°');
     expect(normalize('EagleSpan(tm)')).toBe('EagleSpan™');
+    expect(normalize('(c) 2026 Eagle Span')).toBe('© 2026 Eagle Span');
+  });
+
+  test('leaves an enumerated list alone', () => {
+    // (a), (b), (c) is a list, not a copyright notice.
+    expect(normalize('Choose (a) alignment, (b) brakes or (c) both.')).toBe(
+      'Choose (a) alignment, (b) brakes or (c) both.',
+    );
   });
 
   test('makes feet and inches real primes', () => {

@@ -58,6 +58,8 @@ describe('does not fire on copy that is already correct', () => {
     'Camber, caster and toe measured to 0.01° on every axle.',
     'Monday – Friday, 8:00–17:00.',
     'A 24\u00a0×\u00a08.25 wheel, trued to 0.5\u00a0mm.',
+    // (a), (b), (c) is a list, not a copyright notice.
+    'Choose (a) alignment, (b) brakes or (c) both.',
   ];
   for (const line of clean) {
     test(line.slice(0, 42), () => {

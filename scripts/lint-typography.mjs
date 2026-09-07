@@ -114,8 +114,12 @@ const RULES = [
     message: 'asterisk as a multiplier — use × (U+00D7)',
   },
   {
+    /*
+     * `(c)` and `(r)` only where they are a mark rather than a list letter —
+     * an enumerated (a), (b), (c) is not a copyright notice.
+     */
     id: 'ascii-trademark',
-    re: /\((?:tm|c|r)\)/gi,
+    re: /\(tm\)|(?<=\w)\((?:c|r)\)|\(c\)(?=\s*\d{4}\b)/gi,
     message: 'ASCII trademark mark — use ™ © ®',
     skipLine: isCode,
   },
