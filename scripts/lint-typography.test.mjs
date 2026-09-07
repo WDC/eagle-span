@@ -82,6 +82,8 @@ describe('does not fire on the NAP or on markup', () => {
     // Markdoc tags. Their string delimiters have to be straight quotes.
     '{% cta label="Schedule service" href="/contact" %}',
     '{% specs rows=[{label: "Bay count", value: "6"}] %}',
+    // A spread is code. It is three periods only to a regular expression.
+    '      <h1 {...morph}>{title}</h1>',
   ];
   for (const line of allowed) {
     test(line.slice(0, 42), () => {

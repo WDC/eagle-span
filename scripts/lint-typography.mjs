@@ -105,6 +105,11 @@ const RULES = [
     id: 'ellipsis',
     re: /\.\.\./g,
     message: 'three periods — use …',
+    /*
+     * `<h1 {...morph}>` is a spread, not an ellipsis. `isCode` does not see it:
+     * a spread carries no `=` and no import keyword, so it looks like prose.
+     */
+    skipLine: (l) => isCode(l) || /\{\s*\.\.\./.test(l),
   },
   {
     /*

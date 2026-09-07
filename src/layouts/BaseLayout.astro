@@ -1,4 +1,6 @@
 ---
+import { ClientRouter } from 'astro:transitions';
+
 import '~/styles/global.css';
 import SiteFooter from '~/components/SiteFooter.astro';
 import SiteHeader from '~/components/SiteHeader.astro';
@@ -148,6 +150,21 @@ const nodes = [
     <link rel="preload" href={fontFiles.roman} as="font" type="font/woff2" crossorigin />
 
     <link rel="sitemap" href="/sitemap.xml" />
+
+    {/*
+      Cross-document view transitions, and the whole of what Phase 2 spends on
+      navigation. `fallback="none"` is the restraint: a browser with native view
+      transitions morphs the title a reader just clicked into the heading of the
+      page it opens, and a browser without them navigates the way it always did.
+      The alternative — Astro’s default — reproduces the effect in script on
+      browsers that cannot do it natively, which is a JavaScript-driven
+      animation of a page load, on a site whose whole argument is that it does
+      not need one.
+
+      Names come from `transitionName()` in src/lib/routes.ts so the two ends of
+      the morph — the row in EntryList, the H1 in PageHeader — cannot drift.
+    */}
+    <ClientRouter fallback="none" />
 
     <script type="application/ld+json" is:inline set:html={JSON.stringify(graph(nodes))} />
   </head>

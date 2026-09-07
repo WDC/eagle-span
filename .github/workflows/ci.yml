@@ -87,6 +87,14 @@ jobs:
       - name: Sitemap
         run: bun run verify:sitemap
 
+      # Motion is opt-in and the resting state is the final frame: every
+      # animation sits behind `prefers-reduced-motion: no-preference`, none of
+      # them fills forwards, and the built homepage reads 0.00° without ever
+      # running one. Both halves of the title morph derive their name from the
+      # same function, which is the part that would otherwise rot in silence.
+      - name: Motion
+        run: bun run verify:motion
+
       - name: Link check
         uses: lycheeverse/lychee-action@v2
         with:

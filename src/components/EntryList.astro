@@ -7,7 +7,15 @@
  * reappears. Each row is a rule, a numbered mark, a title and the entry's own
  * summary; the whole row is not the link, because a row-sized click target
  * makes the link text impossible to read out on its own.
+ *
+ * Each title carries a `transition:name` derived from its own href, which is
+ * the near half of the morph: click a row and the browser carries that heading
+ * into the H1 of the page it opens rather than cross-fading the whole document.
+ * `PageHeader` holds the far half. Both derive the name from `transitionName()`
+ * so the two cannot come apart — `verify:motion` fails if either stops.
  */
+import { transitionName } from '~/lib/routes.ts';
+
 export interface ListItem {
   href: string;
   title: string;
@@ -37,7 +45,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <li class="entries__row l-rail">
           <p class="l-rail__mark u-label u-tabular">{numbered ? pad(i + 1) : item.meta}</p>
           <div class="l-rail__body">
-            <h2 class="entries__title">
+            <h2 class="entries__title" transition:name={transitionName(item.href)}>
               <a href={item.href}>{item.title}</a>
             </h2>
             <p class="entries__summary">{item.summary}</p>

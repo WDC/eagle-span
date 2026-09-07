@@ -45,8 +45,14 @@ const faqs = await resolveFaqs(data.faqs);
  * two index pages orphaned, and the fourteen leaves linking only upward. An
  * entry names its own neighbours, so the link graph is content rather than a
  * template's guess at similarity.
+ *
+ * An entry that lists itself is filtered out. It was always a small content
+ * bug — a page offering itself as a related page — and since Phase 2 it is a
+ * rendering one too: the row and this page's own H1 would claim the same
+ * `transition:name`, which is a duplicate the browser resolves by skipping the
+ * transition entirely.
  */
-const related = await resolveOfferings(collection, data.related);
+const related = (await resolveOfferings(collection, data.related)).filter((item) => item.id !== entry.id);
 
 const crumbs = crumbsFor(collection, data.navLabel, path);
 
@@ -72,7 +78,7 @@ const schema = [
   image={data.seo.image?.src}
   imageAlt={data.seo.image ? data.title : undefined}
 >
-  <PageHeader {mark} title={data.title} lede={data.summary} {crumbs} />
+  <PageHeader {mark} title={data.title} lede={data.summary} {crumbs} {path} />
 
   {
     data.hero && (

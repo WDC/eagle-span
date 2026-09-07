@@ -30,6 +30,7 @@ bun run dev
 | `bun run verify:static-build` | No serverless function, no `/keystatic` route, no Keystatic in the output |
 | `bun run verify:jsonld` | JSON-LD parses, NAP matches `site.config`, canonical present, a `Service` node on all 14 offering pages, breadcrumbs and FAQ text visible on the page, `og:image` in the build |
 | `bun run verify:sitemap` | The sitemap and the built site list the same pages, `noindex` on neither side, real dates, `robots.txt` names it |
+| `bun run verify:motion` | Every animation behind `prefers-reduced-motion: no-preference`, no forwards fill on a time-driven animation, both ends of the title morph derived from one function, no literal `transition:name` in the build, the hero readout resting at 0.00° |
 | `bun run verify:redirects <origin>` | One hop, right destination, and a live destination for pages this build produces |
 
 `verify:redirects`, Lighthouse and axe need a deployed origin, so CI runs them
@@ -145,6 +146,35 @@ stages 2–4 from `src/lib/remark-typography.ts`, and `.astro` strings call
 `typo()` from `src/lib/typography.ts`. The lint gates the source, the pipeline
 gates the page — see `docs/phase-2-design-system.md` for why both.
 
+## Motion
+
+One custom animation on the site: the home hero **thrust-angle** diagram. A
+top-down axle set 2.40° out of square against the geometric centerline, which
+resolves as the readout counts to 0.00°.
+
+Two rules hold everywhere, and `verify:motion` enforces both:
+
+* **The resting state is the final frame.** The markup and the unanimated CSS
+  render the aligned truck and 0.00° — the thing that is true. Every animation
+  runs *from* a disturbed state back to the element's own resting value, so none
+  of them fills forwards, and the readout's odometer column rests on its last
+  stop. Reduced motion, an unsupported browser and a failed stylesheet all land
+  on the same correct drawing.
+* **Motion is opt-in.** Everything animated sits inside
+  `@media (prefers-reduced-motion: no-preference)` — not a `reduce` override,
+  because a browser that does not know the feature matches neither query and the
+  still version is the safe one.
+
+The rest is restraint: cross-document view transitions carrying an index row's
+title into the H1 of the page it opens (`fallback="none"`, so browsers without
+the feature navigate normally rather than having it faked in script), and native
+scroll-driven section reveals with no observer and no toggled class. Total
+script on the site is 5.8 KB gzipped against a 50 KB budget.
+
+See [`docs/phase-2-motion.md`](docs/phase-2-motion.md) for the timing table, why
+the resolve is linear, the directive-versus-attribute trap in `transition:name`,
+and the deferred diagrams.
+
 ## Content
 
 Content is edited in **Keystatic**, running in local mode:
@@ -181,6 +211,10 @@ schemas, the SEO bounds and what the migration inherits, and
 [`docs/phase-4-templates.md`](docs/phase-4-templates.md) for the templates, the
 JSON-LD graph and how `lastmod` is derived.
 
+The homepage hero image is optional and **replaces** the thrust-angle diagram
+rather than stacking under it. The Keystatic field says so; `docs/phase-2-motion.md`
+says why.
+
 ## NAP
 
 `src/site.config.ts` is the only place a phone number, address or set of hours
@@ -203,7 +237,8 @@ public/
   fonts/    subset woff2 + OFL.txt (generated)
 scripts/    build + verification CLIs, and their tests
 src/
-  components/ header, footer, breadcrumbs, index lists, the page templates
+  components/ header, footer, breadcrumbs, index lists, the page templates,
+              ThrustAngle (the hero diagram)
     markdoc/  a renderer per custom tag and per overridden node
   content/    the content itself — Keystatic writes here, Astro reads it
   integrations/ dev-only Keystatic wiring
