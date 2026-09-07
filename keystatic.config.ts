@@ -445,8 +445,17 @@ export default config({
             eyebrow: fields.text({ label: 'Rail label', description: 'The micro label above the heading.' }),
             heading: fields.text({ label: 'Heading', validation: { length: { min: 1 } } }),
             lede: fields.text({ label: 'Lede', multiline: true, validation: { length: { min: 1, max: 320 } } }),
-            image: fields.image({ label: 'Hero image', ...IMAGE_LOCATION }),
-            imageAlt: fields.text({ label: 'Hero alt text' }),
+            image: fields.image({
+              label: 'Hero image',
+              description:
+                'Optional, and it replaces the thrust-angle diagram rather than sitting under it. ' +
+                'Leave it empty to keep the animated diagram as the hero.',
+              ...IMAGE_LOCATION,
+            }),
+            imageAlt: fields.text({
+              label: 'Hero alt text',
+              description: 'Required whenever there is a hero image.',
+            }),
           },
           { label: 'Hero' },
         ),

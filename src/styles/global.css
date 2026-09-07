@@ -269,3 +269,64 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: fr
   padding: var(--s-2) var(--s-3) var(--s-2) 0;
   border-block-start: var(--hairline) solid var(--c-rule);
 }
+
+/* ---- Motion ----------------------------------------------------------- */
+
+/*
+ * Phase 2 ships one custom animation — the hero thrust-angle diagram — and two
+ * pieces of restraint: cross-document view transitions, and this.
+ *
+ * `.u-reveal` is a scroll-driven reveal on a native scroll timeline. There is
+ * no observer, no script and no class toggled on scroll, which is what makes it
+ * safe to use at all: the failure mode of the JavaScript version is content
+ * that never appears, and it fails exactly where it is least visible — a slow
+ * connection, a blocked bundle, a reader who scrolled before hydration.
+ *
+ * So it is opt-in twice over. The element is visible in its own right; the
+ * animation is added only where `animation-timeline: view()` is supported AND
+ * the reader has not asked for less motion. Everything else — no support, old
+ * browser, reduced motion, no CSS at all — gets the page as it is.
+ *
+ * `both` fill is correct here and only here: on a scroll timeline the fill
+ * holds the end state for the whole of the range past the animation rather than
+ * freezing a moment in time, so the section stays revealed once it has been.
+ * A time-driven animation in this codebase never fills forwards — see
+ * scripts/verify-motion.mjs, which enforces the distinction.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .u-reveal {
+      animation: u-reveal linear both;
+      animation-timeline: view();
+      /* Done well before the section is fully on screen — a reveal that is
+         still running when the reader is reading it is a distraction. */
+      animation-range: entry 5% entry 55%;
+    }
+  }
+}
+
+@keyframes u-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--s-2));
+  }
+}
+
+/*
+ * View transitions. The morph itself is declared per element with
+ * `transition:name` — see `transitionName()` in src/lib/routes.ts — and the
+ * browser's own default animation is the whole of the styling, because a
+ * navigation is not a place to spend design.
+ *
+ * `prefers-reduced-motion` has to be handled here rather than left to the
+ * browser: the default cross-fade is an animation the reader did not ask for,
+ * and `ClientRouter` has no say over it. Cutting the animation does not cancel
+ * the transition — the new page still swaps in, it simply does so at once.
+ */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}

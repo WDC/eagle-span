@@ -1,0 +1,361 @@
+---
+/*
+ * The home hero: thrust angle, measured and resolved.
+ *
+ * Top-down axle set. The drive axle sits out of square against the geometric
+ * centerline, the measurement scale draws in, and the geometry resolves as the
+ * readout counts to 0.00°. One piece of motion on the whole site — the Phase 2
+ * scope cut traded eight custom diagrams for the one that states the specialty,
+ * the precision and the outcome in a single gesture. The rest is deferred, and
+ * parked in docs/phase-2-motion.md rather than deleted.
+ *
+ * Two rules hold this together, and the gate in scripts/verify-motion.mjs
+ * enforces both:
+ *
+ *   1. **The resting state is the final frame.** The markup and the unanimated
+ *      CSS render the aligned truck, the full scale and 0.00° — the thing that
+ *      is true. Every animation runs *from* a disturbed state back to it, so
+ *      nothing has to be restored when it finishes and there is no `forwards`
+ *      fill anywhere. A reader with `prefers-reduced-motion: reduce`, a browser
+ *      that never runs the animation, a printed page and a failed stylesheet
+ *      all land on the same correct drawing.
+ *   2. **Motion is opt-in.** Everything animated lives inside
+ *      `@media (prefers-reduced-motion: no-preference)`. A browser that does
+ *      not know the feature does not match it, which is the safe way round.
+ *
+ * The angle is real. 2.40° of thrust is a truck that dog-tracks and eats the
+ * outside of its drive tyres, and the tokens reserve `--d-draw` for this one
+ * animation. It is a small angle on purpose: the deviation this shop is paid to
+ * find is not one anybody sees by eye, which is the argument the hero is making.
+ */
+const START_ANGLE = 2.4;
+const STEPS = 12;
+
+/*
+ * The readout, as an odometer rather than an interpolated number: a column of
+ * real text nodes stepped past a one-line window. No `@property`, no `round()`,
+ * no counters, no script — and, because the column rests on its last stop, the
+ * static rendering is 0.00° rather than the value the count happens to start
+ * from. The angle the drawing starts at and the angle the first stop shows come
+ * from the same constant, so they cannot drift apart.
+ */
+const stops = Array.from({ length: STEPS + 1 }, (_, i) => (START_ANGLE * (1 - i / STEPS)).toFixed(2));
+
+/* Graduated scale under the axle set. Center tick sits on the centerline. */
+const ticks = Array.from({ length: 11 }, (_, i) => 10 + i * 26);
+---
+
+<figure
+  class="ta"
+  style={`--ta-angle: ${START_ANGLE}deg; --ta-stops: ${stops.length}; --ta-steps: ${STEPS};`}
+>
+  <svg class="ta__svg" viewBox="0 0 400 300" role="img" aria-labelledby="ta-title ta-desc">
+    <title id="ta-title">Thrust angle resolved to zero</title>
+    <desc id="ta-desc">
+      A top-down diagram of a truck axle set. The rear axle is measured against the geometric
+      centerline and brought square, taking the thrust angle to 0.00°.
+    </desc>
+
+    <defs>
+      {/*
+        The sweep that draws the measurement scale in. A transform rather than an
+        animated `width`, so the only thing that has to be supported is `scaleX`
+        — and the rect’s own attributes already describe the finished state, so
+        a browser that applies neither shows the whole scale.
+      */}
+      <clipPath id="ta-sweep" clipPathUnits="userSpaceOnUse">
+        <rect class="ta__sweep" x="0" y="255" width="280" height="45" />
+      </clipPath>
+    </defs>
+
+    {/* The two datums: geometric centerline, and the square the axle is measured against. */}
+    <line class="ta__centerline" x1="140" y1="20" x2="140" y2="288" vector-effect="non-scaling-stroke" />
+    <line class="ta__square" x1="6" y1="232" x2="274" y2="232" vector-effect="non-scaling-stroke" />
+
+    {/* The measurement scale, swept in left to right. */}
+    <g class="ta__scale" clip-path="url(#ta-sweep)">
+      <line x1="10" y1="264" x2="270" y2="264" vector-effect="non-scaling-stroke" />
+      {
+        ticks.map((x) => (
+          <line
+            class={x === 140 ? 'ta__tick ta__datum-tick' : 'ta__tick'}
+            x1={x}
+            y1="264"
+            x2={x}
+            y2={x === 140 ? 280 : 273}
+            vector-effect="non-scaling-stroke"
+          />
+        ))
+      }
+    </g>
+
+    {/* Steer axle. Square, and staying that way. */}
+    <g class="ta__steer">
+      <line class="ta__axle" x1="36" y1="96" x2="244" y2="96" vector-effect="non-scaling-stroke" />
+      <rect class="ta__wheel" x="26" y="74" width="20" height="44" rx="3" />
+      <rect class="ta__wheel" x="234" y="74" width="20" height="44" rx="3" />
+    </g>
+
+    {/*
+      The deviation, as area. Exact at the start of the animation and empty at
+      the end, which is the only place it has to be either: it is the sliver that
+      closes, drawn once and faded out rather than recomputed per frame.
+    */}
+    <path class="ta__wedge" d="M36 232 L140 232 L36.1 236.4 Z M140 232 L244 232 L243.9 227.6 Z" />
+
+    {/* Drive axle and its thrust line, out of square by the start angle and resolving. */}
+    <g class="ta__rear">
+      <line class="ta__axle" x1="36" y1="232" x2="244" y2="232" vector-effect="non-scaling-stroke" />
+      <rect class="ta__wheel" x="17" y="210" width="17" height="44" rx="3" />
+      <rect class="ta__wheel" x="38" y="210" width="17" height="44" rx="3" />
+      <rect class="ta__wheel" x="225" y="210" width="17" height="44" rx="3" />
+      <rect class="ta__wheel" x="246" y="210" width="17" height="44" rx="3" />
+      {/*
+        Wrapped, because the draw is a scale from the axle end rather than a
+        dash. `stroke-dasharray` wants a length, `pathLength` redefines what a
+        length is and `non-scaling-stroke` redefines it again — between the
+        three the line drew from the wrong end. A transform has one meaning.
+      */}
+      <g class="ta__thrust-draw">
+        <line class="ta__thrust" x1="140" y1="232" x2="140" y2="44" vector-effect="non-scaling-stroke" />
+      </g>
+    </g>
+
+    <g class="ta__labels" aria-hidden="true">
+      <text class="ta__text" x="148" y="32">Centerline</text>
+      <text class="ta__text" x="126" y="68" text-anchor="end">Thrust line</text>
+      <text class="ta__text" x="280" y="100">Steer axle</text>
+      <text class="ta__text" x="280" y="236">Drive axle</text>
+    </g>
+  </svg>
+
+  <figcaption class="ta__readout">
+    <span class="ta__name u-label">Thrust angle</span>
+
+    <span class="ta__value u-reading">
+      {/*
+        The odometer is decoration: it is a column of thirteen readings, and a
+        screen reader walking it would announce all thirteen. The one true
+        value is here, once.
+      */}
+      <span class="u-visually-hidden">0.00°</span>
+      <span class="ta__window" aria-hidden="true">
+        <span class="ta__stops">
+          {stops.map((stop) => <span class="ta__stop">{stop}°</span>)}
+        </span>
+      </span>
+    </span>
+
+    <span class="ta__spec u-label">
+      <span class="ta__mark" aria-hidden="true"></span>In spec
+    </span>
+  </figcaption>
+</figure>
+
+<style>
+  .ta {
+    /* The drawing and the rule beneath it are one object and share an edge. */
+    --ta-width: 34rem;
+    margin: 0;
+    margin-block-start: var(--s-5);
+  }
+
+  .ta__svg {
+    width: 100%;
+    height: auto;
+    /* The drawing is line work: it should not outgrow the measure it sits on. */
+    max-width: var(--ta-width);
+  }
+
+  /* ---- The drawing ---------------------------------------------------- */
+
+  .ta__centerline {
+    stroke: var(--c-ink-4);
+    stroke-width: 1;
+    /* Chain line: the drawing convention for a datum rather than an edge. */
+    stroke-dasharray: 14 4 2 4;
+  }
+
+  .ta__square {
+    stroke: var(--c-rule-strong);
+    stroke-width: 1;
+    stroke-dasharray: 6 5;
+  }
+
+  .ta__scale line { stroke: var(--c-rule-strong); stroke-width: 1; }
+  .ta__datum-tick { stroke: var(--c-ink-4); }
+
+  .ta__axle { stroke: var(--c-ink); stroke-width: 2; }
+
+  .ta__wheel {
+    fill: var(--c-ground-3);
+    stroke: var(--c-ink);
+    stroke-width: 1;
+  }
+
+  /*
+   * Target green as a mark, never as text. It is 3.37:1 on white, which is fine
+   * for a 2px stroke and a WCAG AA failure the moment it carries a word — so
+   * the stroke takes it and the readout below takes --c-target-ink instead.
+   * verify:tokens is the gate.
+   */
+  .ta__thrust {
+    stroke: var(--c-target);
+    stroke-width: 2;
+  }
+
+  .ta__wedge {
+    fill: var(--c-target);
+    /* Resting state: square, so there is no deviation left to show. */
+    opacity: 0;
+  }
+
+  .ta__rear {
+    transform-box: view-box;
+    transform-origin: 140px 232px;
+  }
+
+  .ta__text {
+    /*
+     * User units, so it scales with the drawing: 12 against a 400-unit viewBox
+     * renders at about 10px on a 375px phone, which is the floor for a drawing
+     * annotation and still the smallest type on the site.
+     */
+    font-size: 12px;
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+    fill: var(--c-ink-3);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  /* ---- The readout ---------------------------------------------------- */
+
+  .ta__readout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-2) var(--s-4);
+    max-width: var(--ta-width);
+    margin-block-start: var(--s-3);
+    padding-block-start: var(--s-2);
+    border-block-start: var(--hairline) solid var(--c-rule);
+  }
+
+  .ta__value {
+    font-size: var(--t-h3);
+    line-height: 1.1;
+    /* Pushes the reading to the right of its own rule, against the label. */
+    margin-inline-start: auto;
+  }
+
+  /*
+   * One line tall, with the column of readings behind it. The column rests
+   * translated to its last stop, so the number on a page that never animates is
+   * the number the animation ends on.
+   */
+  .ta__window {
+    display: block;
+    height: 1.1em;
+    overflow: hidden;
+  }
+
+  .ta__stops {
+    display: block;
+    transform: translateY(calc(-100% * (var(--ta-stops) - 1) / var(--ta-stops)));
+  }
+
+  .ta__stop {
+    display: block;
+    height: 1.1em;
+    line-height: 1.1;
+  }
+
+  .ta__spec { display: flex; align-items: center; gap: var(--s-1); }
+
+  .ta__mark {
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    background: var(--c-target);
+  }
+
+  /* ---- Motion --------------------------------------------------------- */
+
+  /*
+   * Everything below is opt-in. `no-preference` rather than a `reduce` override
+   * because a browser that does not know the feature matches neither, and the
+   * unanimated drawing is the one that is already correct.
+   *
+   * `backwards` fill holds the *from* state through the delay. There is
+   * deliberately no `forwards` anywhere: the end of every animation here is the
+   * element's own resting value, so nothing needs holding afterwards.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    .ta__sweep {
+      transform-box: view-box;
+      transform-origin: 0 255px;
+      animation: ta-sweep calc(var(--d-draw) * 0.42) var(--e-out) backwards;
+    }
+
+    .ta__thrust-draw {
+      transform-box: view-box;
+      /* The drive axle centre: the thrust line grows out of the axle it measures. */
+      transform-origin: 140px 232px;
+      animation: ta-extend calc(var(--d-draw) * 0.20) calc(var(--d-draw) * 0.10) var(--e-out) backwards;
+    }
+
+    /*
+     * The resolve, the deviation and the readout are one measurement seen three
+     * ways, so they share a window and a timing function. Linear, and that is
+     * the whole reason: the readout steps through its stops on linear progress,
+     * and `steps()` cannot be composed with an ease. An eased rotation against a
+     * linear count put the axle visibly square while the number still read
+     * 1.20°, which is the one thing this diagram must never do. A machine
+     * converging on a reading does not ease out anyway.
+     */
+    .ta__rear {
+      animation: ta-resolve calc(var(--d-draw) * 0.55) calc(var(--d-draw) * 0.32) linear backwards;
+    }
+
+    .ta__wedge {
+      animation: ta-close calc(var(--d-draw) * 0.55) calc(var(--d-draw) * 0.32) linear backwards;
+    }
+
+    .ta__stops {
+      animation: ta-count calc(var(--d-draw) * 0.55) calc(var(--d-draw) * 0.32) backwards;
+      animation-timing-function: steps(var(--ta-steps), end);
+    }
+
+    .ta__spec {
+      animation: ta-settle calc(var(--d-draw) * 0.16) calc(var(--d-draw) * 0.87) var(--e-out) backwards;
+    }
+  }
+
+  /*
+   * Every one of these omits its `to`, which is the point: the end value is
+   * whatever the element already has, so the animation cannot disagree with the
+   * resting state.
+   */
+  @keyframes ta-sweep {
+    from { transform: scaleX(0); }
+  }
+
+  @keyframes ta-extend {
+    from { transform: scaleY(0); }
+  }
+
+  @keyframes ta-resolve {
+    from { transform: rotate(calc(var(--ta-angle) * -1)); }
+  }
+
+  @keyframes ta-close {
+    from { opacity: 0.34; }
+  }
+
+  @keyframes ta-count {
+    from { transform: translateY(0); }
+  }
+
+  @keyframes ta-settle {
+    from { opacity: 0; }
+  }
+</style>

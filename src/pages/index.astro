@@ -5,6 +5,7 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import EntryList from '~/components/EntryList.astro';
 import Faqs from '~/components/Faqs.astro';
 import LocationCard from '~/components/LocationCard.astro';
+import ThrustAngle from '~/components/ThrustAngle.astro';
 import { getSingleton, resolveFaqs, resolveOfferings } from '~/lib/content.ts';
 import { PAGES, SECTIONS, entryPath } from '~/lib/routes.ts';
 import { faqPageNode } from '~/lib/schema.ts';
@@ -47,6 +48,13 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
   canonical={page.data.seo.canonical}
   image={page.data.seo.image?.src}
 >
+  {/*
+    Everything below the hero takes `.u-reveal` — a native scroll-driven
+    reveal, no observer and no script, so a section is visible whether or not
+    the animation ever runs. The hero itself does not: it is on screen at load,
+    where a reveal is either invisible or a delay on the first thing anybody
+    reads.
+  */}
   <section class="l-page l-section" aria-label="Introduction">
     <div class="l-rail">
       <p class="l-rail__mark u-label u-tabular">{hero.eyebrow}</p>
@@ -54,8 +62,16 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
         <h1>{hero.heading}</h1>
         <p class="hero__lede">{hero.lede}</p>
 
+        {/*
+          The hero visual is the thrust-angle diagram, and a hero image
+          replaces it rather than stacking under it — two competing visuals is
+          not a hero. The Keystatic field says so where an editor will read it,
+          because setting a photograph here is how the one piece of motion on
+          the site would otherwise disappear without anyone deciding to remove
+          it.
+        */}
         {
-          hero.image && (
+          hero.image ? (
             <img
               class="hero__image"
               src={hero.image.src}
@@ -64,6 +80,8 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
               height={hero.image.height}
               decoding="async"
             />
+          ) : (
+            <ThrustAngle />
           )
         }
       </div>
@@ -72,7 +90,7 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
   {
     stats.length > 0 && (
-      <section class="l-page" aria-label="By the numbers">
+      <section class="l-page u-reveal" aria-label="By the numbers">
         <dl class="stats">
           {stats.map((stat) => (
             <div class="stats__cell">
@@ -87,7 +105,7 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
     )
   }
 
-  <section class="l-page l-section" aria-label="Overview">
+  <section class="l-page l-section u-reveal" aria-label="Overview">
     <div class="l-rail">
       <p class="l-rail__mark u-label">Shop</p>
       <div class="l-rail__body">
@@ -98,7 +116,7 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
   {
     services.length > 0 && (
-      <section class="l-page l-section" aria-labelledby="home-services">
+      <section class="l-page l-section u-reveal" aria-labelledby="home-services">
         <div class="l-rail">
           <p class="l-rail__mark u-label u-tabular">{String(services.length).padStart(2, '0')}</p>
           <div class="l-rail__body">
@@ -122,7 +140,7 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
   {
     repairs.length > 0 && (
-      <section class="l-page l-section" aria-labelledby="home-repairs">
+      <section class="l-page l-section u-reveal" aria-labelledby="home-repairs">
         <div class="l-rail">
           <p class="l-rail__mark u-label u-tabular">{String(repairs.length).padStart(2, '0')}</p>
           <div class="l-rail__body">
@@ -146,7 +164,7 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
   {
     testimonials.length > 0 && (
-      <section class="l-page l-section" aria-labelledby="home-said">
+      <section class="l-page l-section u-reveal" aria-labelledby="home-said">
         <div class="l-rail">
           <p class="l-rail__mark u-label">Said</p>
           <div class="l-rail__body">
@@ -182,7 +200,7 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
   <Faqs items={faqs} />
 
-  <section class="l-page l-section" aria-labelledby="home-where">
+  <section class="l-page l-section u-reveal" aria-labelledby="home-where">
     <div class="l-rail">
       <p class="l-rail__mark u-label">Where</p>
       <div class="l-rail__body">

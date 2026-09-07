@@ -118,3 +118,25 @@ export function crumbsFor(collection: RoutedName, name: string, path: string): C
 export function pageCrumbs(name: string, path: string): Crumb[] {
   return [HOME_CRUMB, { name, path }];
 }
+
+/**
+ * The view-transition name for a page.
+ *
+ * A title in an index and the H1 it links to are the same thing to a reader, so
+ * they should be the same thing to the browser: give both
+ * `view-transition-name: t-services-wheel-alignment` and the title morphs across
+ * the navigation instead of the page cross-fading under it.
+ *
+ * It lives here because the two ends are in different components — the list row
+ * in `EntryList` and the heading in `PageHeader` — and a name that only agrees
+ * by coincidence is a name that stops agreeing. `verify:motion` fails if either
+ * side stops deriving it from this function.
+ *
+ * The output has to be a CSS custom-ident, which a URL path is not: slashes and
+ * an empty first segment are both illegal, and a leading digit would be too.
+ * The `t-` prefix settles all three.
+ */
+export function transitionName(path: string): string {
+  const slug = path.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return `t-${slug || 'home'}`;
+}

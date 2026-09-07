@@ -69,7 +69,7 @@ const schema = [
   imageAlt={data.seo.image ? data.title : undefined}
 >
   <article>
-    <PageHeader mark="Article" title={data.title} lede={data.summary} {crumbs}>
+    <PageHeader mark="Article" title={data.title} lede={data.summary} {crumbs} {path}>
       <p class="byline">
         <span class="byline__by">{data.author ?? site.name}</span>
         <time class="u-tabular" datetime={published.toISOString()}>{dateFormat.format(published)}</time>
