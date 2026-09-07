@@ -32,6 +32,15 @@ bun run dev
 `verify:redirects`, Lighthouse and axe need a deployed origin, so CI runs them
 against the preview URL once `PREVIEW_URL` is set as a repository variable.
 
+**Setting `PREVIEW_URL` alone is not enough.** The Vercel project has SSO
+deployment protection on, scoped `all_except_custom_domains`, so every preview
+URL answers `302 → vercel.com/sso-api`. Pointed at a preview deployment, all
+three gates would fail on every run and none of the failures would be about this
+site — `verify:redirects` reports 0/6 because it follows the login redirect, not
+because a redirect is wrong. Either exempt the origin from protection, point
+`PREVIEW_URL` at a custom domain, or issue a Protection Bypass for Automation
+token and send it as `x-vercel-protection-bypass`.
+
 The link check runs in CI as a lychee action. To reproduce a failure locally
 rather than iterating through CI, install the same binary and run the same
 arguments against `dist/`:
