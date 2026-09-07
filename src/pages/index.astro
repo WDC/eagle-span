@@ -1,0 +1,77 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { site } from '~/site.config.ts';
+
+/*
+ * Skeleton homepage. Phase 1 exists to get every CI gate green on an empty
+ * shell before any page work starts, so this deliberately carries no migrated
+ * copy — it proves the layout, tokens, schema graph and NAP wiring only.
+ * Real content lands in Phase 3.
+ */
+
+const title = 'Heavy-Duty Truck Repair Shop in Charlotte, NC | EagleSpan';
+const description =
+  'EagleSpan Corporation provides heavy-duty truck and trailer repair for owner-operators and commercial fleets in Charlotte, North Carolina.';
+---
+
+<BaseLayout {title} {description} path="/">
+  <section class="l-page l-section">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label u-tabular">00</p>
+      <div class="l-rail__body l-stack">
+        <h1>Heavy-duty truck repair in Charlotte, North&nbsp;Carolina</h1>
+        <p>
+          Phase 1 shell. Design tokens, the measurement rail, the schema graph and the NAP source of
+          truth are wired; migrated content lands in Phase&nbsp;3.
+        </p>
+
+        <dl class="spec">
+          <div class="spec__row">
+            <dt class="u-label">Phone</dt>
+            <dd class="u-tabular">
+              <a href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a>
+            </dd>
+          </div>
+          <div class="spec__row">
+            <dt class="u-label">Address</dt>
+            <dd>
+              {site.address.street}, {site.address.locality}, {site.address.region}{' '}
+              <span class="u-tabular">{site.address.postalCode}</span>
+            </dd>
+          </div>
+          <div class="spec__row">
+            <dt class="u-label">Hours</dt>
+            <dd class="u-tabular">
+              {site.hours.days}, {site.hours.opens}–{site.hours.closes}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /*
+   * Specs read as a data column: hairline rules, tabular figures, no boxes.
+   */
+  .spec {
+    margin-block-start: var(--s-5);
+    max-width: var(--measure-tight);
+  }
+
+  .spec__row {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: var(--s-3);
+    padding-block: var(--s-2);
+    border-block-start: var(--hairline) solid var(--c-rule);
+  }
+
+  .spec__row dt { padding-block-start: 0.2em; }
+  .spec__row dd { margin: 0; }
+
+  @media (width < 32rem) {
+    .spec__row { grid-template-columns: minmax(0, 1fr); gap: var(--s-0); }
+  }
+</style>
