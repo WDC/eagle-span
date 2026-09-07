@@ -116,10 +116,16 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
-      # One hop, correct destination, destination returns 200. Runs first
-      # because it preflights the origin: if the bypass token is missing or
-      # stale it says so once here, rather than letting all three gates fail
-      # with login redirects that look like site bugs.
+      # verify-redirects reads dist/ to tell a destination the site has not
+      # built yet from one that is genuinely broken.
+      - name: Build
+        run: bun run build
+
+      # One hop, correct destination, and — for destinations this build
+      # actually produces — a live page. Runs first because it preflights the
+      # origin: if the bypass token is missing or stale it says so once here,
+      # rather than letting all three gates fail with login redirects that look
+      # like site bugs.
       - name: Verify redirects
         run: node scripts/verify-redirects.mjs "${{ vars.PREVIEW_URL }}"
 

@@ -6,13 +6,20 @@
  * 200. A redirect that lands on a 404 or chains through a second hop is a
  * failed migration, not a passing one.
  *
- * Usage: node scripts/verify-redirects.mjs https://preview-url.vercel.app
+ * Usage: bun run build && node scripts/verify-redirects.mjs https://origin
+ *
+ * The build has to exist first: a redirect can only be held to "its destination
+ * is live" once this repo actually produces that page. Until Phase 3 migrates
+ * the content, most destinations are routes the site has not built yet, and a
+ * gate that fails on those would sit red for weeks and teach everyone to
+ * ignore it. Those rows report as pending instead, and become real checks on
+ * their own as the pages land — no flag anybody has to remember to flip.
  *
  * Set VERCEL_AUTOMATION_BYPASS_SECRET when the origin has Vercel deployment
  * protection on, which every preview URL on this project does. See the preview
  * gates section of the README.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -25,6 +32,26 @@ if (!origin) {
 }
 
 const { redirects } = JSON.parse(readFileSync(resolve(root, 'vercel.json'), 'utf8'));
+
+const dist = resolve(root, 'dist');
+if (!existsSync(dist)) {
+  console.error('dist/ is missing — run `bun run build` before verifying redirects.');
+  process.exit(2);
+}
+
+/**
+ * Does this build produce that path? `build.format: 'file'` with
+ * `trailingSlash: 'never'` means /service is dist/service.html and / is
+ * dist/index.html.
+ *
+ * An absolute destination points off-site, so the build cannot answer for it
+ * and it is always checked against the origin.
+ */
+function builtLocally(destination) {
+  if (destination.startsWith('http')) return true;
+  const rel = destination === '/' ? 'index.html' : `${destination.replace(/^\//, '')}.html`;
+  return existsSync(resolve(dist, rel));
+}
 
 /*
  * Vercel deployment protection answers every unauthenticated request with a 302
@@ -92,13 +119,23 @@ async function check({ source, destination, statusCode }) {
     return { source, problems: [`request failed: ${err.message}`] };
   }
 
+  /*
+   * The hop itself is the redirect map's contract and is always enforced:
+   * right status, right destination, no chain. This half is meaningful from
+   * the first deploy and has nothing to do with whether the content exists.
+   */
   if (res.status !== statusCode) problems.push(`expected ${statusCode}, got ${res.status}`);
 
   const location = res.headers.get('location') ?? '';
   const landed = location.startsWith('http') ? new URL(location).pathname : location;
   if (landed !== destination) problems.push(`expected -> ${destination}, got -> ${location || '(none)'}`);
 
-  // Second hop: the destination must be terminal and live.
+  /*
+   * The destination's liveness is only assertable once this build produces the
+   * page. A destination the site has not built yet is pending, not broken.
+   */
+  if (!builtLocally(destination)) return { source, destination, problems, pending: true };
+
   if (location) {
     try {
       const final = await fetch(location.startsWith('http') ? location : origin + location, {
@@ -115,26 +152,36 @@ async function check({ source, destination, statusCode }) {
     }
   }
 
-  return { source, problems };
+  return { source, destination, problems, pending: false };
 }
+
+let pending = 0;
 
 const queue = [...redirects];
 const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
   for (;;) {
     const item = queue.shift();
     if (!item) return;
-    const { source, problems } = await check(item);
-    if (problems.length) {
+    const result = await check(item);
+    if (result.problems.length) {
       failed += 1;
-      console.error(`FAIL ${source}`);
-      for (const p of problems) console.error(`     ${p}`);
+      console.error(`FAIL ${result.source}`);
+      for (const p of result.problems) console.error(`     ${p}`);
+    } else if (result.pending) {
+      pending += 1;
+      console.log(`--   ${result.source} -> ${item.destination} (${item.statusCode})  hop ok, destination not built yet`);
     } else {
-      console.log(`ok   ${source} -> ${item.destination} (${item.statusCode})`);
+      console.log(`ok   ${result.source} -> ${item.destination} (${item.statusCode})`);
     }
   }
 });
 
 await Promise.all(workers);
 
-console.log(`\n${redirects.length - failed}/${redirects.length} redirects verified against ${origin}`);
+const verified = redirects.length - failed - pending;
+console.log(
+  `\n${verified}/${redirects.length} redirects fully verified against ${origin}` +
+  (pending ? `, ${pending} pending a destination this build does not produce yet` : '') +
+  (failed ? `, ${failed} failed` : ''),
+);
 if (failed) process.exit(1);
