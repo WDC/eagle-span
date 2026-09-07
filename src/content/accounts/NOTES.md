@@ -1,9 +1,15 @@
-# Fleet accounts are not fixtures
+# Where these came from
 
-This collection is deliberately empty, for the reason in
-testimonials/NOTES.md: which billing networks and national accounts this shop
-honours is a fact about the business, and inventing one as scaffolding would put
-a false claim in front of a fleet customer.
+The live homepage carries a band headed “We Offer National Account Services
+such as:” with three logos under it — Michelin, Bridgestone and Yokohama. That
+band is the whole of the source, so these three entries are the whole of the
+collection.
 
-The list lands in Phase 3, confirmed against what the shop actually bills
-through. The schema is in src/content.config.ts.
+Each entry is a name and nothing else on purpose. `logo` is empty because the
+asset export is still blocked on the Webflow hosting item, and `url` and
+`note` are empty because the live site says nothing about what the program
+covers. Naming a billing network is a claim a fleet customer acts on, so the
+gap is left visible rather than filled with a plausible sentence.
+
+Confirm the list against what the shop actually bills through before cutover;
+this is a transcription of a logo band, not a statement from the business.

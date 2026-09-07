@@ -4,4 +4,7 @@ cta:
 announcement:
   enabled: false
 social: []
-footerNote: Phase 1 scaffolding. The migrated footer copy lands in Phase 3.
+footerNote: >-
+  Eagle Span Corporation runs a full-service heavy-duty truck repair shop in
+  Charlotte, North Carolina. Seven service bays and a team of diesel mechanics,
+  working on heavy-duty vehicles and commercial fleets.
