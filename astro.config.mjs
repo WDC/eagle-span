@@ -1,8 +1,10 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import markdoc from '@astrojs/markdoc';
 import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 
+import keystaticDev from './src/integrations/keystatic-dev.ts';
 import remarkTypography from './src/lib/remark-typography.ts';
 import { site } from './src/site.config.ts';
 
@@ -18,13 +20,28 @@ export default defineConfig({
   trailingSlash: 'never',
   build: { format: 'file' },
 
-  /*
-   * Phase 4 replaces this with real `lastmod` values read from the content
-   * collections — build time is not a modification date. Until then the
-   * integration exists so /sitemap-index.xml is a real URL rather than a
-   * dangling reference in the head.
-   */
-  integrations: [sitemap()],
+  integrations: [
+    /*
+     * Markdoc, not MDX: content cannot import a module or evaluate an
+     * expression, and the only tags it can use are the ones declared in
+     * markdoc.config.mjs. See docs/phase-1-content-model.md.
+     */
+    markdoc(),
+
+    /*
+     * Phase 4 replaces this with real `lastmod` values read from the content
+     * collections — build time is not a modification date. Until then the
+     * integration exists so /sitemap-index.xml is a real URL rather than a
+     * dangling reference in the head.
+     */
+    sitemap(),
+
+    /*
+     * Adds Keystatic only under `astro dev`, so /keystatic and its write
+     * endpoint are absent from every build. verify:static-build enforces it.
+     */
+    keystaticDev(),
+  ],
 
   prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
 

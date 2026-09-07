@@ -1,0 +1,15 @@
+---
+import { site } from '~/site.config.ts';
+
+/*
+ * `{% phone %}`. The NAP is written once, in site.config.ts, and rendered from
+ * there everywhere — the Webflow site emitted five different formats of this
+ * number and verify:jsonld now fails the build on drift. Body copy was the last
+ * place a sixth could have been typed by hand.
+ *
+ * Tabular figures and a CSS no-wrap rather than an injected U+00A0: the string
+ * has to stay byte-identical to the Google Business Profile.
+ */
+---
+
+<a class="u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a>

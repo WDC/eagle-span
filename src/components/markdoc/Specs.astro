@@ -1,0 +1,63 @@
+---
+import type { SpecRow } from '~/lib/markdoc-tags.ts';
+
+/*
+ * `{% specs %}`. A measured column: hairline rules, lining tabular figures, no
+ * box. This is the numeric split from Phase 2 made available to content —
+ * prose keeps old-style proportional figures, and anything that has to align
+ * down a column opts into `.u-tabular` here.
+ *
+ * The rows are validated in markdoc.config.mjs (a non-empty label and value,
+ * an optional note, nothing else), so this renders without guarding shapes.
+ */
+interface Props {
+  label?: string;
+  rows: readonly SpecRow[];
+}
+
+const { label, rows } = Astro.props;
+---
+
+<div class="l-rail specs">
+  <p class="l-rail__mark u-label">{label}</p>
+  <dl class="l-rail__body specs__list">
+    {
+      rows.map((row) => (
+        <div class="specs__row">
+          <dt class="u-label">{row.label}</dt>
+          <dd class="u-tabular">
+            {row.value}
+            {row.note && <span class="specs__note"> {row.note}</span>}
+          </dd>
+        </div>
+      ))
+    }
+  </dl>
+</div>
+
+<style>
+  .specs { margin-block: var(--s-5); }
+  .specs__list { max-width: var(--measure-tight); }
+
+  .specs__row {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr);
+    gap: var(--s-3);
+    padding-block: var(--s-2);
+    border-block-start: var(--hairline) solid var(--c-rule);
+  }
+
+  .specs__row dt { padding-block-start: 0.2em; }
+  .specs__row dd { margin: 0; }
+
+  /* A qualifier is not a reading: it stays in prose figures and steps back. */
+  .specs__note {
+    color: var(--c-ink-3);
+    font-size: var(--t-fine);
+    font-variant-numeric: oldstyle-nums proportional-nums;
+  }
+
+  @media (width < 32rem) {
+    .specs__row { grid-template-columns: minmax(0, 1fr); gap: var(--s-0); }
+  }
+</style>

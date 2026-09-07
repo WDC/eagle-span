@@ -1,0 +1,12 @@
+---
+import { site } from '~/site.config.ts';
+
+/*
+ * `{% address %}`. One line, for prose. The marked-up PostalAddress that
+ * search engines read is the JSON-LD in src/lib/schema.ts, which renders from
+ * the same object — this is the human-readable half of the same fact.
+ */
+const { street, locality, region, postalCode } = site.address;
+---
+
+<span>{street}, {locality}, {region} <span class="u-tabular">{postalCode}</span></span>

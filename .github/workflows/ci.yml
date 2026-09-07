@@ -55,8 +55,20 @@ jobs:
       - name: vercel.json is current
         run: node scripts/build-vercel-json.mjs --check
 
+      # A tag with no renderer, a missing singleton, or a content file left
+      # behind by a rename. The build validates the content; this validates the
+      # shape around it.
+      - name: Content model
+        run: bun run verify:content
+
       - name: Build
         run: bun run build
+
+      # Keystatic is registered for `astro dev` only, which is what makes local
+      # mode safe: no admin UI and no write endpoint on a public origin. One
+      # careless line makes that false without breaking anything visible.
+      - name: Production build is static
+        run: bun run verify:static-build
 
       - name: JSON-LD validation
         run: bun run verify:jsonld

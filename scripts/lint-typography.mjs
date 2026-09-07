@@ -35,8 +35,18 @@ const EXTS = new Set(['.md', '.mdoc', '.markdoc', '.astro', '.yaml', '.yml', '.j
 
 const UNIT_ALTERNATION = UNITS.join('|');
 
-/** Markup, not prose: an import, an attribute value, a YAML or JSON key. */
-const isCode = (l) => /^\s*(import|export)\b/.test(l) || /[\w-]+=("|')/.test(l);
+/**
+ * Markup, not prose: an import, an attribute value, a YAML or JSON key, or a
+ * Markdoc tag.
+ *
+ * Markdoc tag syntax is the reason for the last clause. `{% specs
+ * rows=[{label: "Torque", value: "450 lb-ft"}] %}` is a tag, and its string
+ * delimiters have to be straight quotes — a curly one is a parse error, not a
+ * refinement. The copy inside a wrapper tag sits on its own lines and is still
+ * linted; only the tag itself is skipped.
+ */
+const isCode = (l) =>
+  /^\s*(import|export)\b/.test(l) || /[\w-]+=("|')/.test(l) || /\{%|%\}/.test(l);
 
 const RULES = [
   {
@@ -163,6 +173,10 @@ export function lintLine(line) {
 function lintFile(file) {
   const lines = readFileSync(file, 'utf8').split('\n');
   let inFrontmatterFence = false;
+  // A Markdoc tag whose attributes run over several lines: the opener carries
+  // `{%`, the closer `%}`, and the lines between are markup with no `{%` of
+  // their own for `isCode` to recognise.
+  let inMarkdocTag = false;
   let failures = 0;
 
   lines.forEach((line, i) => {
@@ -170,6 +184,13 @@ function lintFile(file) {
     if (line.trim() === '---') { inFrontmatterFence = !inFrontmatterFence; return; }
     if (inFrontmatterFence && extname(file) === '.astro') return;
     if (/^\s*(\/\/|\/\*|\*)/.test(line)) return;
+
+    const wasInMarkdocTag = inMarkdocTag;
+    const opens = line.lastIndexOf('{%');
+    const closes = line.lastIndexOf('%}');
+    if (opens > closes) inMarkdocTag = true;
+    else if (closes > -1) inMarkdocTag = false;
+    if (wasInMarkdocTag) return;
 
     for (const { rule, column } of lintLine(line)) {
       failures += 1;

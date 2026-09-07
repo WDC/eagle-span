@@ -79,6 +79,9 @@ describe('does not fire on the NAP or on markup', () => {
     '<meta name="description" content={description} />',
     '  border-block-start: var(--hairline) solid var(--c-rule);',
     '  "postalCode": "28206",',
+    // Markdoc tags. Their string delimiters have to be straight quotes.
+    '{% cta label="Schedule service" href="/contact" %}',
+    '{% specs rows=[{label: "Bay count", value: "6"}] %}',
   ];
   for (const line of allowed) {
     test(line.slice(0, 42), () => {

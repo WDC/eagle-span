@@ -1,0 +1,31 @@
+---
+/*
+ * The `link` node, so every link written in content is handled the same way.
+ *
+ * External links open in a new tab and say so to a screen reader. Same-tab
+ * navigation away from an article is the one thing a reader cannot undo without
+ * losing their place, and an unlabelled new tab is the classic a11y complaint
+ * about the fix — so it carries both `rel` and a spoken note.
+ *
+ * Internal links are written as paths on this site (data/redirects.csv and the
+ * CI link check both assume that), so they keep the default behaviour.
+ */
+interface Props {
+  href: string;
+  title?: string;
+}
+
+const { href, title } = Astro.props;
+const isExternal = /^https?:\/\//i.test(href);
+---
+
+{
+  isExternal ? (
+    <a href={href} title={title} target="_blank" rel="noopener noreferrer">
+      <slot />
+      <span class="u-visually-hidden"> (opens in a new tab)</span>
+    </a>
+  ) : (
+    <a href={href} title={title}><slot /></a>
+  )
+}

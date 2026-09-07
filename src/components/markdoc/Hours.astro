@@ -1,0 +1,8 @@
+---
+import { site } from '~/site.config.ts';
+
+/* `{% hours %}`. Same argument as Phone.astro: hours are NAP, not copy. */
+const { days, opens, closes } = site.hours;
+---
+
+<span class="u-tabular u-nowrap">{days}, {opens}–{closes}</span>

@@ -24,8 +24,10 @@ bun run dev
 | `bun test` | Text pipeline, remark plugin, every typography lint rule |
 | `bun run verify:fonts` | woff2 digests, `fonts.css` and preload references, required OpenType features, font budget |
 | `bun run verify:tokens` | Text-token contrast (AA on both grounds), reserved use of target green |
+| `bun run verify:content` | Every Markdoc tag has a renderer, every singleton has its file, no orphan content |
 | `bun run redirects:build` | Regenerates `vercel.json` from `data/redirects.csv` |
-| `bun run build` | Astro build |
+| `bun run build` | Astro build — also where content schemas and Markdoc tags are validated |
+| `bun run verify:static-build` | No serverless function, no `/keystatic` route, no Keystatic in the output |
 | `bun run verify:jsonld` | JSON-LD parses, NAP matches `site.config`, canonical present |
 | `bun run verify:redirects <origin>` | One hop, right destination, and a live destination for pages this build produces |
 
@@ -142,6 +144,38 @@ stages 2–4 from `src/lib/remark-typography.ts`, and `.astro` strings call
 `typo()` from `src/lib/typography.ts`. The lint gates the source, the pipeline
 gates the page — see `docs/phase-2-design-system.md` for why both.
 
+## Content
+
+Content is edited in **Keystatic**, running in local mode:
+
+```bash
+bun run dev     # then open http://127.0.0.1:4321/keystatic
+```
+
+Local mode reads and writes the working tree directly — no GitHub app, no OAuth
+callback, no tokens in Vercel. The integration is registered for `astro dev`
+only, so `/keystatic` and its write endpoint do not exist in a production build,
+the deployed site stays entirely static, and there is no unauthenticated write
+endpoint on a public origin. `bun run verify:static-build` fails if that ever
+stops being true.
+
+Bodies are **Markdoc**, not MDX: content cannot import a module or evaluate an
+expression, and the only tags it can use are the six declared in
+`src/lib/markdoc-tags.ts`. The build rejects anything else.
+
+Three of those tags — `{% phone %}`, `{% hours %}` and `{% address %}` — render
+the NAP from `src/site.config.ts`, because body copy is the one place a phone
+number could otherwise still be typed by hand.
+
+Six singletons (`home`, `about`, `contact`, `careers`, `fleet`, `settings`) and
+seven collections (`services`, `repairs`, `articles`, `legal`, `faqs`,
+`testimonials`, `accounts`) live under `src/content/`. Paths are declared once in
+`src/lib/content-paths.ts` and read by both configs, so the directory the editor
+writes to is the directory the build reads.
+
+See [`docs/phase-1-content-model.md`](docs/phase-1-content-model.md) for the
+schemas, the SEO bounds and what the migration inherits.
+
 ## NAP
 
 `src/site.config.ts` is the only place a phone number, address or set of hours
@@ -163,10 +197,18 @@ public/
   fonts/    subset woff2 + OFL.txt (generated)
 scripts/    build + verification CLIs, and their tests
 src/
-  lib/      schema graph, text pipeline, remark plugin
-  layouts/  BaseLayout
-  pages/    routes
-  styles/   tokens.css, fonts.css (generated), global.css
+  components/
+    markdoc/  a renderer per custom tag
+  content/    the content itself — Keystatic writes here, Astro reads it
+  integrations/ dev-only Keystatic wiring
+  layouts/    BaseLayout
+  lib/        schema graph, text pipeline, remark plugin, content and tag manifests
+  pages/      routes
+  styles/     tokens.css, fonts.css (generated), global.css
+
+keystatic.config.ts    the editor — collections, singletons, fields
+markdoc.config.mjs     the tag schemas, built from src/lib/markdoc-tags.ts
+src/content.config.ts  the gate — a Zod schema per collection
 ```
 
 Generated files are committed so they show up in review, and every one of them
