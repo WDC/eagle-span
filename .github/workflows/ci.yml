@@ -73,10 +73,16 @@ jobs:
           # Webflow site checks the wrong thing and fails on pages that do
           # not exist there yet. Real URLs are verified against a real
           # deployment by scripts/verify-redirects.mjs in the job below.
+          #
+          # dist/fonts/OFL.txt is the font licence, which the OFL requires us to
+          # distribute alongside the font. It is not site content and its body
+          # text carries Adobe and SIL URLs; crawling them adds 90 seconds and a
+          # third-party timeout to every run for no signal.
           args: >-
             --no-progress --include-fragments
             --root-dir "$GITHUB_WORKSPACE/dist"
             --exclude '^https://www\.eaglespancorp\.com'
+            --exclude-path dist/fonts/OFL.txt
             dist
           fail: true
 

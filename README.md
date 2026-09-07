@@ -32,6 +32,19 @@ bun run dev
 `verify:redirects`, Lighthouse and axe need a deployed origin, so CI runs them
 against the preview URL once `PREVIEW_URL` is set as a repository variable.
 
+The link check runs in CI as a lychee action. To reproduce a failure locally
+rather than iterating through CI, install the same binary and run the same
+arguments against `dist/`:
+
+```bash
+cargo install lychee --locked
+bun run build
+lychee --no-progress --include-fragments --root-dir "$PWD/dist" \
+  --exclude '^https://www\.eaglespancorp\.com' \
+  --exclude-path dist/fonts/OFL.txt \
+  dist
+```
+
 ## How redirects work
 
 `data/redirects.csv` is the source of truth — one row per URL, and the `reason`
