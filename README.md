@@ -32,14 +32,58 @@ bun run dev
 `verify:redirects`, Lighthouse and axe need a deployed origin, so CI runs them
 against the preview URL once `PREVIEW_URL` is set as a repository variable.
 
-**Setting `PREVIEW_URL` alone is not enough.** The Vercel project has SSO
-deployment protection on, scoped `all_except_custom_domains`, so every preview
-URL answers `302 → vercel.com/sso-api`. Pointed at a preview deployment, all
-three gates would fail on every run and none of the failures would be about this
-site — `verify:redirects` reports 0/6 because it follows the login redirect, not
-because a redirect is wrong. Either exempt the origin from protection, point
-`PREVIEW_URL` at a custom domain, or issue a Protection Bypass for Automation
-token and send it as `x-vercel-protection-bypass`.
+### Getting CI past deployment protection
+
+The Vercel project has SSO deployment protection on, scoped
+`all_except_custom_domains`. Every preview URL answers `302 →
+vercel.com/sso-api`: a human gets a Vercel login page, and CI — which has no
+browser and no Vercel account — gets a redirect it cannot follow. Pointed at a
+protected origin with nothing else configured, all three gates fail on every run
+and none of the failures are about this site.
+
+Vercel's answer is a **Protection Bypass for Automation** token: a random string
+that, sent with a request, skips the protection check for that request. Previews
+stay private to everyone else; CI gets in. It is a credential, so it lives in a
+GitHub *secret*, not a variable.
+
+Two settings make the job run:
+
+| Name | Kind | Value |
+| --- | --- | --- |
+| `PREVIEW_URL` | repository **variable** | the origin to test, no trailing slash |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | repository **secret** | the token from Vercel |
+
+To set it up:
+
+1. In Vercel, open the `eagle-span-website` project → **Settings** →
+   **Deployment Protection**. Under **Protection Bypass for Automation**, click
+   **Add Secret**, then copy the generated value.
+2. In GitHub, open **Settings** → **Secrets and variables** → **Actions**. On
+   the **Secrets** tab, **New repository secret**, named exactly
+   `VERCEL_AUTOMATION_BYPASS_SECRET`, and paste the value.
+3. On the **Variables** tab of the same page, **New repository variable**, named
+   `PREVIEW_URL`, set to the origin you want gated — a stable one, since a
+   per-branch preview URL changes with the branch name.
+
+Each of the three gates takes it differently, because the tools differ:
+
+* `verify:redirects` reads `VERCEL_AUTOMATION_BYPASS_SECRET` from the
+  environment and sends it as an `x-vercel-protection-bypass` header. It
+  preflights the origin first, so a missing or stale token reports itself as a
+  protection problem rather than as six broken redirects.
+* **Lighthouse** takes no header input on the action, so CI writes a
+  `lighthouserc.json` at run time carrying `collect.settings.extraHeaders` and
+  passes it as `configPath`. A header, not a query parameter — the results
+  artifact is uploaded, and a token in a URL would be inside it.
+* **axe** has no header option at all, so there the token goes in the query
+  string with `x-vercel-set-bypass-cookie`, which makes Vercel set a cookie and
+  redirect to the clean URL. The audited page carries no token, GitHub masks the
+  value in the log, and the step uploads nothing.
+
+Regenerating the token in Vercel invalidates the old one, so update the GitHub
+secret at the same time. If you would rather not run a token at all, point
+`PREVIEW_URL` at a custom domain — those are already exempt under the current
+protection scope — and leave the secret unset.
 
 The link check runs in CI as a lychee action. To reproduce a failure locally
 rather than iterating through CI, install the same binary and run the same

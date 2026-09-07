@@ -94,6 +94,18 @@ jobs:
     # wired in Phase 7 with the cutover runbook; until then these run only
     # when a preview URL is available.
     if: ${{ vars.PREVIEW_URL != '' }}
+    env:
+      # This project has Vercel deployment protection on, scoped
+      # all_except_custom_domains, so every preview URL answers 302 to a login
+      # page. This token is Vercel's documented way to let automation through:
+      # a request carrying it skips the check.
+      #
+      # A repository *secret*, not a variable — it is a credential, and secrets
+      # are masked in logs. Create it in the Vercel project under Deployment
+      # Protection -> Protection Bypass for Automation. Leave it unset only if
+      # PREVIEW_URL points at an origin that is not protected, such as a custom
+      # domain; verify-redirects.mjs says which case it is looking at.
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - uses: actions/checkout@v5
 
@@ -104,9 +116,23 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
-      # One hop, correct destination, destination returns 200.
+      # One hop, correct destination, destination returns 200. Runs first
+      # because it preflights the origin: if the bypass token is missing or
+      # stale it says so once here, rather than letting all three gates fail
+      # with login redirects that look like site bugs.
       - name: Verify redirects
         run: node scripts/verify-redirects.mjs "${{ vars.PREVIEW_URL }}"
+
+      # The action takes no header input, but it forwards a LHCI config to
+      # `lhci collect`, and LHCI passes collect.settings.extraHeaders down to
+      # Lighthouse. Written at run time so the token is never in a committed
+      # file, and sent as a header rather than a query parameter so it cannot
+      # reach the uploaded results artifact.
+      - name: Lighthouse config carrying the bypass header
+        run: |
+          jq -n --arg secret "$VERCEL_AUTOMATION_BYPASS_SECRET" \
+            '{ci:{collect:{settings:{extraHeaders:{"x-vercel-protection-bypass":$secret}}}}}' \
+            > lighthouserc.json
 
       - name: Lighthouse budgets
         uses: treosh/lighthouse-ci-action@v12
@@ -114,10 +140,21 @@ jobs:
           urls: |
             ${{ vars.PREVIEW_URL }}/
           budgetPath: ./lighthouse-budget.json
+          configPath: ./lighthouserc.json
           uploadArtifacts: true
 
+      # @axe-core/cli has no header option — only --chrome-options, which
+      # cannot set request headers — so here the token has to go in the query
+      # string. `x-vercel-set-bypass-cookie` makes Vercel reply with a cookie
+      # and a redirect to the clean URL, so the page axe actually audits
+      # carries no token. GitHub masks the value in the log, and this step
+      # uploads nothing.
       - name: Accessibility (axe)
         run: |
-          bunx @axe-core/cli "${{ vars.PREVIEW_URL }}/" \
+          url="${{ vars.PREVIEW_URL }}/"
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            url="${url}?x-vercel-protection-bypass=${VERCEL_AUTOMATION_BYPASS_SECRET}&x-vercel-set-bypass-cookie=true"
+          fi
+          bunx @axe-core/cli "$url" \
             --exit \
             --tags wcag2a,wcag2aa,wcag21a,wcag21aa,wcag22aa

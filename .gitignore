@@ -9,6 +9,8 @@ dist/
 .DS_Store
 bun.lockb.bak
 lighthouse-report/
+# Written by CI at run time so the bypass token is never committed.
+lighthouserc.json
 
 # Upstream font downloads for scripts/build-fonts.py. The built subsets in
 # public/fonts/ are committed; the 1 MB sources they come from are not.
