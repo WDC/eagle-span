@@ -46,10 +46,20 @@ jobs:
       - name: Link check
         uses: lycheeverse/lychee-action@v2
         with:
-          # --root-dir is required for lychee to resolve root-relative
-          # hrefs (/contact, /sitemap-index.xml) against the built output
-          # rather than the filesystem root.
-          args: --no-progress --include-fragments --root-dir "$GITHUB_WORKSPACE/dist" dist
+          # --root-dir lets lychee resolve root-relative hrefs against the
+          # built output rather than the filesystem root.
+          #
+          # The production origin is excluded because every absolute URL in
+          # the build (canonicals, the sitemap entries) points at the site
+          # this repo is replacing. Resolving them against the current
+          # Webflow site checks the wrong thing and fails on pages that do
+          # not exist there yet. Real URLs are verified against a real
+          # deployment by scripts/verify-redirects.mjs in the job below.
+          args: >-
+            --no-progress --include-fragments
+            --root-dir "$GITHUB_WORKSPACE/dist"
+            --exclude '^https://www\.eaglespancorp\.com'
+            dist
           fail: true
 
   deployed:
