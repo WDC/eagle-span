@@ -1,0 +1,7 @@
+cta:
+  label: Schedule service
+  href: /contact
+announcement:
+  enabled: false
+social: []
+footerNote: Phase 1 scaffolding. The migrated footer copy lands in Phase 3.

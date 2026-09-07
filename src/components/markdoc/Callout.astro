@@ -1,0 +1,54 @@
+---
+/*
+ * `{% callout %}`. A note, a caution or a safety warning.
+ *
+ * A hairline axis and a label, not a tinted box with a rounded corner: the
+ * design runs on alignment marks and rules, and a callout is the place a card
+ * grid usually creeps back in. The tone is carried by the label and by the
+ * weight of the rule, so it survives being printed and being read by someone
+ * who cannot see the colour.
+ */
+interface Props {
+  tone?: 'note' | 'caution' | 'safety';
+  title?: string;
+}
+
+const { tone = 'note', title } = Astro.props;
+
+/*
+ * The label is the accessible name of the region, so a screen reader announces
+ * "Safety" before the text rather than an unlabelled aside.
+ */
+const TONE_LABEL = { note: 'Note', caution: 'Caution', safety: 'Safety' } as const;
+const label = TONE_LABEL[tone];
+---
+
+<aside class="callout" data-tone={tone} aria-label={title ?? label}>
+  <p class="callout__label u-label">{label}</p>
+  <div class="callout__body l-stack">
+    {title && <p class="callout__title">{title}</p>}
+    <slot />
+  </div>
+</aside>
+
+<style>
+  .callout {
+    margin-block: var(--s-5);
+    padding-inline-start: var(--s-4);
+    border-inline-start: var(--hairline) solid var(--c-rule-strong);
+    max-width: var(--measure);
+  }
+
+  /* Caution and safety earn a heavier axis; neither earns a fill. */
+  .callout[data-tone='caution'] { border-inline-start-width: 2px; }
+
+  .callout[data-tone='safety'] {
+    border-inline-start-width: 3px;
+    border-inline-start-color: var(--c-red);
+  }
+
+  .callout__label { margin-block-end: var(--s-1); }
+  .callout[data-tone='safety'] .callout__label { color: var(--c-red); }
+
+  .callout__title { font-weight: 620; }
+</style>
