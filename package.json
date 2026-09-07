@@ -20,6 +20,7 @@
     "check": "bun run typecheck && bun run lint && bun run lint:typography && bun run build"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
     "@astrojs/vercel": "^8.2.9",
     "astro": "^5.14.1"
   },

@@ -46,7 +46,10 @@ jobs:
       - name: Link check
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --no-progress --include-fragments dist
+          # --root-dir is required for lychee to resolve root-relative
+          # hrefs (/contact, /sitemap-index.xml) against the built output
+          # rather than the filesystem root.
+          args: --no-progress --include-fragments --root-dir "$GITHUB_WORKSPACE/dist" dist
           fail: true
 
   deployed:
