@@ -9,3 +9,8 @@ dist/
 .DS_Store
 bun.lockb.bak
 lighthouse-report/
+
+# Upstream font downloads for scripts/build-fonts.py. The built subsets in
+# public/fonts/ are committed; the 1 MB sources they come from are not.
+.cache/
+__pycache__/

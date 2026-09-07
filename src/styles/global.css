@@ -1,4 +1,5 @@
 @import './tokens.css';
+@import './fonts.css';
 
 /* ---- Reset ------------------------------------------------------------ */
 *,
@@ -26,8 +27,14 @@ body {
   text-rendering: optimizeLegibility;
 
   /*
-   * Prose runs old-style proportional figures; specs, phone numbers and hours
-   * opt into lining tabular via .u-tabular. Fractions are diagonal throughout.
+   * Prose runs old-style proportional figures: they sit on the x-height and
+   * read as words rather than as data, which is what a sentence containing a
+   * year or a phone number wants. Specs, readings, hours and the phone number
+   * opt back into lining tabular via .u-tabular.
+   *
+   * This is the whole reason the font is Source Sans 3 — `onum` and `pnum` are
+   * real features in it. In a face without them the declaration is a no-op and
+   * every figure on the site is silently lining.
    */
   font-variant-numeric: oldstyle-nums proportional-nums diagonal-fractions;
 }
@@ -71,19 +78,51 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: fr
 /*
  * Lining tabular figures. Every measurement, phone number, hour, price and
  * spec column takes this — digits must align in a column and read as data.
+ *
+ * Note what this does NOT do: Source Sans 3 has no `lnum` or `tnum`, because
+ * its default figures are already lining and tabular (every digit is 497 units
+ * at wght 400). So this declaration works by *overriding* the old-style value
+ * inherited from body, not by requesting a feature — and `font-feature-settings`
+ * would be worse than useless here, because a font swap would leave a lie in
+ * the stylesheet instead of a fallback. verify-fonts.mjs asserts the assumption.
+ *
+ * Fractions stay diagonal: a spec column is exactly where ⁷⁄₁₆ shows up.
  */
 .u-tabular {
-  font-variant-numeric: lining-nums tabular-nums;
-  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-variant-numeric: lining-nums tabular-nums diagonal-fractions;
 }
 
-/* Uppercase micro label used on the measurement rail. */
+/*
+ * The NAP must stay byte-identical to the Google Business Profile, so the
+ * phone number cannot carry an injected non-breaking space. It still must not
+ * wrap after the area code, so the no-break is CSS.
+ */
+.u-nowrap { white-space: nowrap; }
+
+/*
+ * A reading: a measured value, in spec. The one place alignment-target green
+ * is allowed to appear alongside active state — never as a border, never as
+ * decoration on a heading.
+ */
+.u-reading {
+  color: var(--c-target-ink);
+  font-variant-numeric: lining-nums tabular-nums diagonal-fractions;
+  font-weight: 560;
+}
+
+/*
+ * Uppercase micro label used on the measurement rail. `case` moves the
+ * parentheses and dashes up to match the cap height — at this letter-spacing
+ * the difference is the thing that makes it read as instrumentation rather
+ * than as shouted body copy.
+ */
 .u-label {
   font-size: var(--t-micro);
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
   color: var(--c-ink-3);
   font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: 'case' 1;
 }
 
 .u-visually-hidden {

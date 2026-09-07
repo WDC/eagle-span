@@ -1,5 +1,6 @@
 ---
 import '~/styles/global.css';
+import { fontFiles } from '~/lib/fonts.generated.ts';
 import { site } from '~/site.config.ts';
 import { breadcrumbNode, businessNode, graph, webPageNode, websiteNode, type Crumb } from '~/lib/schema.ts';
 
@@ -43,6 +44,15 @@ const nodes = [
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta name="twitter:card" content="summary_large_image" />
+
+    {/*
+      Roman only. The italic face is declared in fonts.css and downloads by
+      itself on the pages that render italic text; preloading it would cost
+      60 KB on every page that does not. `crossorigin` is not optional even
+      same-origin — without it the preload and the CSS request do not match
+      and the file is fetched twice.
+    */}
+    <link rel="preload" href={fontFiles.roman} as="font" type="font/woff2" crossorigin />
 
     <link rel="sitemap" href="/sitemap-index.xml" />
 

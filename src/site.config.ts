@@ -7,16 +7,16 @@
  * the business name, which is exactly the inconsistency that suppresses local
  * ranking. One object, one format, no exceptions.
  *
- * NOTE: `name` and `geo` below are pending confirmation against the GBP — see
- * docs/phase-0-findings.md. The GBP listing spells the name "Eagle Span
- * Corporation" (two words); the site and its JSON-LD use "EagleSpan
- * Corporation". Do not resolve this by guessing.
+ * The name spelling is settled: two words, matching the Google Business
+ * Profile (ClickUp 86bbw0ecw). The Webflow site's one-word "EagleSpan
+ * Corporation" was the drift, not the listing. Phase 4 still owns the rest of
+ * the NAP finalization against the live GBP.
  */
 
 export const site = {
   url: 'https://www.eaglespancorp.com',
-  name: 'EagleSpan Corporation',
-  shortName: 'EagleSpan',
+  name: 'Eagle Span Corporation',
+  shortName: 'Eagle Span',
 
   address: {
     street: '3815 Beasley Lane',

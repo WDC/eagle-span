@@ -82,7 +82,9 @@ Confirmed, with the evidence in the inventory sheet.
 5. **Business name mismatch.** The site says "EagleSpan Corporation"; the linked
    Google listing says "Eagle Span Corporation" (two words). One of these is
    wrong and it is the kind of inconsistency that quietly suppresses local
-   ranking. **Needs a decision against the live GBP — do not guess.**
+   ranking. **Resolved in Phase 2** (ClickUp 86bbw0ecw): two words, matching the
+   listing. The Webflow spelling was the drift. `src/site.config.ts` carries it
+   and `verify:jsonld` fails the build on drift.
 6. **Geo drift.** On-page JSON-LD carries `35.2705919 / -80.83994129999999`;
    the Maps listing and the Phase 4 spec carry `35.270506 / -80.839889`. Using
    the listing's values.
