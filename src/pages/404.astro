@@ -1,0 +1,21 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+
+const title = 'Page not found | EagleSpan Corporation';
+const description = 'That page has moved or no longer exists.';
+---
+
+<BaseLayout {title} {description} path="/404">
+  <section class="l-page l-section">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label u-tabular">404</p>
+      <div class="l-rail__body l-stack">
+        <h1>That page has moved</h1>
+        <p>
+          Every URL from the previous site redirects to its replacement. If you reached this page
+          from a link, <a href="/contact">tell us where it was</a> and we will fix it.
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

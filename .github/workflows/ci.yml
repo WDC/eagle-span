@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: Static gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Content typography lint
+        run: bun run lint:typography
+
+      # vercel.json is committed so redirect changes are reviewable in the
+      # diff. This fails if it drifts from data/redirects.csv.
+      - name: vercel.json is current
+        run: node scripts/build-vercel-json.mjs --check
+
+      - name: Build
+        run: bun run build
+
+      - name: JSON-LD validation
+        run: bun run verify:jsonld
+
+      - name: Link check
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --include-fragments dist
+          fail: true
+
+  deployed:
+    name: Gates against the preview deployment
+    runs-on: ubuntu-latest
+    needs: gates
+    # Redirects, Lighthouse and axe need a real origin. The deploy step is
+    # wired in Phase 7 with the cutover runbook; until then these run only
+    # when a preview URL is available.
+    if: ${{ vars.PREVIEW_URL != '' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # One hop, correct destination, destination returns 200.
+      - name: Verify redirects
+        run: node scripts/verify-redirects.mjs "${{ vars.PREVIEW_URL }}"
+
+      - name: Lighthouse budgets
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            ${{ vars.PREVIEW_URL }}/
+          budgetPath: ./lighthouse-budget.json
+          uploadArtifacts: true
+
+      - name: Accessibility (axe)
+        run: |
+          bunx @axe-core/cli "${{ vars.PREVIEW_URL }}/" \
+            --exit \
+            --tags wcag2a,wcag2aa,wcag21a,wcag21aa,wcag22aa

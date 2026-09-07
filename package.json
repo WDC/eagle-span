@@ -1,0 +1,34 @@
+{
+  "name": "eagle-span",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "bun run redirects:build && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "typecheck": "astro check --minimumSeverity error",
+    "lint": "eslint . --max-warnings 0",
+    "lint:typography": "node scripts/lint-typography.mjs",
+    "redirects:build": "node scripts/build-vercel-json.mjs",
+    "verify:redirects": "node scripts/verify-redirects.mjs",
+    "verify:jsonld": "node scripts/verify-jsonld.mjs",
+    "check": "bun run typecheck && bun run lint && bun run lint:typography && bun run build"
+  },
+  "dependencies": {
+    "@astrojs/vercel": "^8.2.9",
+    "astro": "^5.14.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@eslint/js": "^9.37.0",
+    "eslint": "^9.37.0",
+    "eslint-plugin-astro": "^1.3.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.45.0"
+  }
+}

@@ -1,0 +1,7 @@
+source,destination,status,reason
+/index.html,/,301,"Live site serves 200 at /index.html — duplicate of the homepage with no canonical tag. Collapse it."
+/blog,/company/articles,301,"Pre-existing Webflow redirect verified live (301). Preserve it — pre-Webflow legacy path."
+/services,/service,301,"Live site 301s /services to / — a soft-404-adjacent hop. Point it at the real services index instead."
+/repairs,/repair,301,"Live site 404s /repairs while /repair exists. Plural is the natural guess and matches /repairs/* children."
+/articles,/company/articles,301,"Live site 404s /articles even though every article lives at /articles/{slug}. Send the bare path to the index."
+/company,/company/about,301,"Live site 404s the /company parent. Send it to the section's primary page."

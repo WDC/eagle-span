@@ -1,0 +1,60 @@
+---
+import '~/styles/global.css';
+import { site } from '~/site.config.ts';
+import { breadcrumbNode, businessNode, graph, webPageNode, websiteNode, type Crumb } from '~/lib/schema.ts';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Path without origin, e.g. "/repairs/wheel-alignment". */
+  path: string;
+  crumbs?: readonly Crumb[];
+  /** Page-specific nodes (Service, FAQPage, Article) merged into the graph. */
+  schema?: readonly object[];
+}
+
+const { title, description, path, crumbs = [], schema = [] } = Astro.props;
+
+const canonical = `${site.url}${path === '/' ? '/' : path}`;
+
+const nodes = [
+  businessNode(),
+  websiteNode(),
+  webPageNode(path, title, description),
+  ...(crumbs.length ? [breadcrumbNode(crumbs)] : []),
+  ...schema,
+];
+---
+
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {/* The live Webflow site emits no canonical tag on any of its 30 pages. */}
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(graph(nodes))} />
+  </head>
+
+  <body>
+    <a class="u-skip-link" href="#main">Skip to content</a>
+    <slot name="header" />
+    <main id="main">
+      <slot />
+    </main>
+    <slot name="footer" />
+  </body>
+</html>
