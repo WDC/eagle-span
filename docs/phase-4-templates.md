@@ -256,6 +256,22 @@ billed key, and a screenshot carries no licence to redistribute. The contact
 page is correct without it. This is the one part of the task's brief that is
 blocked on something the repo does not have, rather than done.
 
+## One thing this phase found rather than built
+
+`body` carried `font-variant-numeric: ... diagonal-fractions` from Phase 2, and
+`frac` in Source Sans 3 maps `period → period.n` and `comma → comma.n`
+unconditionally — only its third lookup is the contextual rule that assembles a
+fraction. **Every full stop and comma on the site was raised to numerator
+height.** Nothing caught it because Phase 2 shipped onto a one-page shell whose
+prose was two sentences; this phase put real copy on thirteen pages, which is
+when someone read one.
+
+`diagonal-fractions` now lives in one rule, `.u-frac`, meant to wrap the
+fraction itself, and `verify:fonts` fails if the declaration appears anywhere
+else under `src/` — comments stripped, component `<style>` blocks included. The
+correction is written up in `docs/phase-2-design-system.md` next to the claim it
+replaces.
+
 ## Gates
 
 | Command | What it now covers |

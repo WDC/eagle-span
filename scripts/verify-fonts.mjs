@@ -14,9 +14,9 @@
  * So the manifest records the digests and this checks them.
  */
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(resolve(root, p), 'utf8');
@@ -105,6 +105,51 @@ for (const fb of manifest.fallbacks) {
 }
 
 if (!globalCss.includes("@import './fonts.css'")) fail('global.css does not import fonts.css');
+
+/*
+ * `frac` is a run-level feature, not a paragraph-level one.
+ *
+ * Its first two lookups in Source Sans 3 are unconditional single
+ * substitutions — `period → period.n`, `comma → comma.n`, every digit to its
+ * numerator form — and only the third is the contextual rule that assembles a
+ * fraction around the slash. Applied to `body` it raises every full stop and
+ * comma on the site to numerator height, which is exactly what shipped from
+ * Phase 2 until the Phase 4 templates put real prose on thirteen pages.
+ *
+ * So it is allowed in one rule, `.u-frac`, which is meant to wrap the fraction
+ * itself. This checks the declaration has not spread back out to a selector
+ * that covers prose.
+ */
+/* Comments explain the rule; they are not the rule. */
+const stripComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, ' ');
+
+const fracRule = stripComments(globalCss).match(/\.u-frac\s*\{[^}]*\}/);
+if (!fracRule) fail('global.css has no .u-frac rule — the one place diagonal-fractions belongs');
+else if (!/diagonal-fractions/.test(fracRule[0])) fail('.u-frac does not set diagonal-fractions');
+
+/* Component `<style>` blocks can reintroduce it just as easily as global.css. */
+function styleSources(dir, out = []) {
+  for (const name of readdirSync(dir)) {
+    const p = resolve(dir, name);
+    if (statSync(p).isDirectory()) styleSources(p, out);
+    else if (/\.(css|astro)$/.test(name)) out.push(p);
+  }
+  return out;
+}
+
+for (const file of styleSources(resolve(root, 'src'))) {
+  const css = stripComments(readFileSync(file, 'utf8'));
+  const total = (css.match(/diagonal-fractions/g) ?? []).length;
+  if (total === 0) continue;
+
+  const allowed = ((css.match(/\.u-frac\s*\{[^}]*\}/g) ?? []).join(' ').match(/diagonal-fractions/g) ?? []).length;
+  if (total !== allowed) {
+    fail(
+      `${relative(root, file)}: diagonal-fractions declared ${total - allowed} time(s) outside .u-frac — ` +
+      'frac raises every period and comma it is applied to, so it belongs on the fraction, not the block',
+    );
+  }
+}
 
 /* Preload the roman only. Preloading the italic as well would download 60 KB
  * on every page for text most pages do not have. */

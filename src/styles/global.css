@@ -35,8 +35,11 @@ body {
    * This is the whole reason the font is Source Sans 3 — `onum` and `pnum` are
    * real features in it. In a face without them the declaration is a no-op and
    * every figure on the site is silently lining.
+   *
+   * `diagonal-fractions` is deliberately NOT here — see .u-frac below. It was,
+   * and it raised every full stop and comma on the site.
    */
-  font-variant-numeric: oldstyle-nums proportional-nums diagonal-fractions;
+  font-variant-numeric: oldstyle-nums proportional-nums;
 }
 
 img,
@@ -86,10 +89,33 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: fr
  * would be worse than useless here, because a font swap would leave a lie in
  * the stylesheet instead of a fallback. verify-fonts.mjs asserts the assumption.
  *
- * Fractions stay diagonal: a spec column is exactly where ⁷⁄₁₆ shows up.
+ * A spec column is exactly where ⁷⁄₁₆ shows up, but the fraction opts in with
+ * .u-frac on its own span rather than the column turning `frac` on for every
+ * decimal point in it.
  */
 .u-tabular {
-  font-variant-numeric: lining-nums tabular-nums diagonal-fractions;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/*
+ * A fraction, and nothing else. Wrap the fraction itself:
+ *
+ *   <span class="u-tabular">7<span class="u-frac">/</span>16 in</span>
+ *   <span class="u-frac">7/16</span> in
+ *
+ * `frac` in Source Sans 3 is three lookups, and the first two are unconditional
+ * single substitutions — `period → period.n`, `comma → comma.n`, every digit to
+ * its numerator form — with only the third being the contextual rule that
+ * assembles the fraction around the slash. The feature is built to be applied
+ * to the fraction run; applied to a paragraph it raises every full stop and
+ * comma in it to numerator height.
+ *
+ * Which is what shipped from Phase 2 until Phase 4 put real prose on thirteen
+ * pages and someone looked at a sentence. `verify-fonts.mjs` now fails if
+ * `diagonal-fractions` appears anywhere but here.
+ */
+.u-frac {
+  font-variant-numeric: diagonal-fractions;
 }
 
 /*
@@ -106,7 +132,7 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: fr
  */
 .u-reading {
   color: var(--c-target-ink);
-  font-variant-numeric: lining-nums tabular-nums diagonal-fractions;
+  font-variant-numeric: lining-nums tabular-nums;
   font-weight: 560;
 }
 
