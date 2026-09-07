@@ -1,0 +1,82 @@
+---
+/*
+ * An index list: hairline rows on the measurement rail.
+ *
+ * Not a card grid. Nothing on this site sits in a bordered box — the design is
+ * alignment marks and rules — and an index is the place a card grid usually
+ * reappears. Each row is a rule, a numbered mark, a title and the entry's own
+ * summary; the whole row is not the link, because a row-sized click target
+ * makes the link text impossible to read out on its own.
+ */
+export interface ListItem {
+  href: string;
+  title: string;
+  summary: string;
+  /** A date, a topic — anything that qualifies the row. Set lining tabular. */
+  meta?: string | undefined;
+}
+
+interface Props {
+  items: readonly ListItem[];
+  /** Numbered marks read as an inventory; unnumbered ones as an archive. */
+  numbered?: boolean | undefined;
+  /** Rendered when the collection is empty rather than showing a bare rule. */
+  empty?: string | undefined;
+}
+
+const { items, numbered = true, empty } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+{
+  items.length === 0 && empty ? (
+    <p class="entries__empty">{empty}</p>
+  ) : (
+    <ul class="entries">
+      {items.map((item, i) => (
+        <li class="entries__row l-rail">
+          <p class="l-rail__mark u-label u-tabular">{numbered ? pad(i + 1) : item.meta}</p>
+          <div class="l-rail__body">
+            <h2 class="entries__title">
+              <a href={item.href}>{item.title}</a>
+            </h2>
+            <p class="entries__summary">{item.summary}</p>
+            {numbered && item.meta && <p class="entries__meta u-label u-tabular">{item.meta}</p>}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+<style>
+  .entries {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .entries__row { padding-block: var(--s-4); }
+
+  .entries__title {
+    font-size: var(--t-h3);
+    letter-spacing: var(--ls-heading);
+  }
+
+  .entries__title a { text-decoration: none; }
+  .entries__title a:hover { text-decoration: underline; }
+
+  .entries__summary {
+    margin-block-start: var(--s-2);
+    color: var(--c-ink-2);
+    max-width: var(--measure);
+  }
+
+  .entries__meta { margin-block-start: var(--s-2); }
+
+  .entries__empty {
+    padding-block: var(--s-4);
+    border-block-start: var(--hairline) solid var(--c-rule);
+    color: var(--c-ink-3);
+  }
+</style>

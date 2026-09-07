@@ -1,0 +1,12 @@
+---
+/*
+ * The `document` node: the root of every rendered Markdoc body.
+ *
+ * Astro's default renders `<article>` here. That is a decision the content file
+ * is in no position to make — see NODE_COMPONENTS in src/lib/markdoc-tags.ts —
+ * so this renders a styling hook and nothing else, and each template wraps the
+ * body in whatever landmark the page actually is.
+ */
+---
+
+<div class="prose"><slot /></div>

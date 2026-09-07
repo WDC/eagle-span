@@ -51,3 +51,32 @@ export const site = {
 } as const;
 
 export type Site = typeof site;
+
+/**
+ * A flat map image of the shop, linked to the Maps listing.
+ *
+ * The live site embeds a Google Maps iframe on the contact page. An iframe is
+ * roughly 900 KB of third-party JavaScript, a set of cookies this site
+ * otherwise never sets, and therefore a consent banner — for a picture of a
+ * street corner. A static image linking to `mapsUrl` gives the reader the same
+ * two things they wanted (where it is, and directions) and costs one request
+ * this origin serves itself. `src/components/LocationCard.astro` renders it.
+ *
+ * It is `null` because the image does not exist yet, and there is no honest way
+ * to invent one: the Maps Static API needs a billed key, and the alternative is
+ * a screenshot with no licence to redistribute. The contact page is correct
+ * without it — address, hours, phone and a link to the listing — and this is
+ * the one object to fill in when the asset lands.
+ *
+ * `width` and `height` are the intrinsic pixel size, so the space is reserved
+ * before the image loads and nothing shifts under the reader.
+ */
+export interface StaticMap {
+  /** Served from this origin. A remote src would put the third party back. */
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+}
+
+export const staticMap: StaticMap | null = null;

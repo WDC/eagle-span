@@ -1,0 +1,43 @@
+---
+import Breadcrumbs from '~/components/Breadcrumbs.astro';
+import type { Crumb } from '~/lib/schema.ts';
+
+/*
+ * The top of every page that is not the homepage: the measurement rail, the
+ * breadcrumb trail, the H1 and the lede.
+ *
+ * `mark` is the rail label — a section number or a short qualifier. It is
+ * decoration in the sense that nothing depends on it, and structure in the
+ * sense that the whole layout hangs off the rail it sits in.
+ */
+interface Props {
+  mark?: string | undefined;
+  title: string;
+  lede?: string | undefined;
+  crumbs?: readonly Crumb[] | undefined;
+}
+
+const { mark, title, lede, crumbs = [] } = Astro.props;
+---
+
+<header class="l-page l-section pagehead">
+  <div class="l-rail">
+    <p class="l-rail__mark u-label u-tabular">{mark}</p>
+    <div class="l-rail__body l-stack">
+      <Breadcrumbs {crumbs} />
+      <h1>{title}</h1>
+      {lede && <p class="pagehead__lede">{lede}</p>}
+      <slot />
+    </div>
+  </div>
+</header>
+
+<style>
+  .pagehead { padding-block-end: var(--s-5); }
+
+  .pagehead__lede {
+    font-size: var(--t-lead);
+    color: var(--c-ink-2);
+    max-width: var(--measure);
+  }
+</style>

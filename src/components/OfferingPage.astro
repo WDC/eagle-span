@@ -1,0 +1,133 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { render } from 'astro:content';
+
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import EntryList from '~/components/EntryList.astro';
+import Faqs from '~/components/Faqs.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import { resolveFaqs, resolveOfferings } from '~/lib/content.ts';
+import { SECTIONS, crumbsFor, entryPath } from '~/lib/routes.ts';
+import { faqPageNode, serviceNode } from '~/lib/schema.ts';
+
+/*
+ * A service or a repair. One template, because they are one shape.
+ *
+ * The Phase 0 crawl found no structured data at all on any of these fourteen
+ * pages — defect 8, and the largest single SEO gap in the migration. The
+ * `Service` node below is what closes it, and `verify:jsonld` fails the build
+ * if any page under /services or /repairs ships without one.
+ *
+ * Which collection an entry is in decides its URL prefix, its index page, its
+ * breadcrumb and the `serviceType` on its node. None of that is a field an
+ * editor can set wrong, which is the reason services and repairs are two
+ * collections rather than one with a `kind`.
+ */
+type Offering = CollectionEntry<'services' | 'repairs'>;
+
+interface Props {
+  collection: 'services' | 'repairs';
+  entry: Offering;
+  /** Position in the index, so the rail mark matches the list the reader came from. */
+  mark: string;
+}
+
+const { collection, entry, mark } = Astro.props;
+const { data } = entry;
+
+const path = entryPath(collection, entry.id);
+const { Content } = await render(entry);
+
+const faqs = await resolveFaqs(data.faqs);
+
+/*
+ * `related` is the answer to the other half of defect 10: the crawl found the
+ * two index pages orphaned, and the fourteen leaves linking only upward. An
+ * entry names its own neighbours, so the link graph is content rather than a
+ * template's guess at similarity.
+ */
+const related = await resolveOfferings(collection, data.related);
+
+const crumbs = crumbsFor(collection, data.navLabel, path);
+
+const schema = [
+  serviceNode({
+    path,
+    name: data.title,
+    serviceType: data.navLabel,
+    description: data.summary,
+  }),
+  ...(faqs.length ? [faqPageNode(path, faqs)] : []),
+];
+---
+
+<BaseLayout
+  title={data.seo.title}
+  description={data.seo.description}
+  {path}
+  {crumbs}
+  {schema}
+  noindex={data.seo.noindex}
+  canonical={data.seo.canonical}
+  image={data.seo.image?.src}
+  imageAlt={data.seo.image ? data.title : undefined}
+>
+  <PageHeader {mark} title={data.title} lede={data.summary} {crumbs} />
+
+  {
+    data.hero && (
+      <figure class="l-page hero">
+        <img
+          src={data.hero.src}
+          alt={data.heroAlt}
+          width={data.hero.width}
+          height={data.hero.height}
+          decoding="async"
+        />
+      </figure>
+    )
+  }
+
+  {/*
+    The body is a `section`, not an `article`: a service page’s copy is not a
+    self-contained composition that would make sense syndicated on its own.
+    This is the decision Phase 1 left open — see NODE_COMPONENTS in
+    src/lib/markdoc-tags.ts.
+  */}
+  <section class="l-page l-section" aria-label="Details">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label">Detail</p>
+      <div class="l-rail__body">
+        <Content />
+      </div>
+    </div>
+  </section>
+
+  <Faqs items={faqs} />
+
+  {
+    related.length > 0 && (
+      <section class="l-page l-section" aria-labelledby="related-heading">
+        <div class="l-rail">
+          <p class="l-rail__mark u-label">Also</p>
+          <div class="l-rail__body">
+            <h2 id="related-heading">Related {SECTIONS[collection].label.toLowerCase()}</h2>
+            <EntryList
+              numbered={false}
+              items={related.map((item) => ({
+                href: entryPath(collection, item.id),
+                title: item.data.navLabel,
+                summary: item.data.summary,
+              }))}
+            />
+          </div>
+        </div>
+      </section>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .hero { margin-block-start: var(--s-4); }
+  .hero img { width: 100%; }
+</style>

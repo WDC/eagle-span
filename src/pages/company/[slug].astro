@@ -1,0 +1,78 @@
+---
+import { render } from 'astro:content';
+
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import { listPublished } from '~/lib/content.ts';
+import { crumbsFor, entryPath } from '~/lib/routes.ts';
+
+/*
+ * `/company/{slug}` — the legal pages, which is the whole of what lives
+ * directly under `/company`.
+ *
+ * `about`, `careers` and `articles` are their own files in this directory.
+ * Astro resolves a static route ahead of a dynamic one, so a legal entry with
+ * one of those slugs would build without complaint and never be served: the
+ * page would simply be the other one, forever. The guard below turns that into
+ * a build failure naming the collision, because the alternative is a page an
+ * editor can create and then never find.
+ */
+export async function getStaticPaths() {
+  /* Declared in here: Astro hoists getStaticPaths out of the frontmatter scope. */
+  const RESERVED = new Set(['about', 'careers', 'articles']);
+
+  const entries = await listPublished('legal');
+
+  const clash = entries.find((entry) => RESERVED.has(entry.id));
+  if (clash) {
+    throw new Error(
+      `Legal entry "${clash.id}" collides with the static route /company/${clash.id}. ` +
+        'Rename the entry (and add a redirect row) — Astro would serve the other page and never this one.',
+    );
+  }
+
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+
+const path = entryPath('legal', entry.id);
+const { Content } = await render(entry);
+
+const crumbs = crumbsFor('legal', data.title, path);
+
+const dateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone: 'UTC' });
+---
+
+<BaseLayout
+  title={data.seo.title}
+  description={data.seo.description}
+  {path}
+  {crumbs}
+  noindex={data.seo.noindex}
+  canonical={data.seo.canonical}
+  image={data.seo.image?.src}
+>
+  <PageHeader mark="Legal" title={data.title} lede={data.summary} {crumbs}>
+    <p class="effective">
+      Effective
+      <time class="u-tabular" datetime={data.effectiveDate.toISOString()}>
+        {dateFormat.format(data.effectiveDate)}
+      </time>
+    </p>
+  </PageHeader>
+
+  <div class="l-page l-section">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label u-tabular">{data.effectiveDate.getUTCFullYear()}</p>
+      <div class="l-rail__body">
+        <Content />
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .effective { font-size: var(--t-fine); color: var(--c-ink-3); }
+</style>

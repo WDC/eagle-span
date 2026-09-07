@@ -1,7 +1,7 @@
 // @ts-check
 import { component, defineMarkdocConfig, nodes } from '@astrojs/markdoc/config';
 
-import { TAGS } from './src/lib/markdoc-tags.ts';
+import { NODE_COMPONENTS, TAGS } from './src/lib/markdoc-tags.ts';
 import { typographyNodes } from './src/lib/markdoc-typography.ts';
 
 /*
@@ -131,6 +131,16 @@ export default defineMarkdocConfig({
     ...typographyNodes,
 
     /*
+     * The root of a rendered entry. Astro's default is `<article>`; this makes
+     * it a plain prose container so the template owns the landmark. See
+     * NODE_COMPONENTS in src/lib/markdoc-tags.ts for why.
+     */
+    document: {
+      ...nodes.document,
+      render: component(NODE_COMPONENTS.document),
+    },
+
+    /*
      * Every link out of body copy is external until proven otherwise, and an
      * external link that opens in the same tab from an article is a bounce.
      * Internal paths keep the default. Absolute URLs to this site are not a
@@ -139,7 +149,7 @@ export default defineMarkdocConfig({
      */
     link: {
       ...nodes.link,
-      render: component('./src/components/markdoc/Link.astro'),
+      render: component(NODE_COMPONENTS.link),
     },
   },
 

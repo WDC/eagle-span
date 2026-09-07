@@ -1,0 +1,64 @@
+---
+import { render } from 'astro:content';
+
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import EntryList from '~/components/EntryList.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import { getSingleton, listArticles } from '~/lib/content.ts';
+import { SECTIONS, entryPath, pageCrumbs } from '~/lib/routes.ts';
+
+/*
+ * `/company/articles`. The index is under `/company`; its entries are not.
+ * That is the live site's arrangement — see the correction in
+ * docs/phase-0-findings.md — and `data/redirects.csv` sends both `/blog` and
+ * the bare `/articles` here.
+ */
+const page = await getSingleton('articlesIndex');
+const entries = await listArticles();
+const { Content } = await render(page);
+
+const path = SECTIONS.articles.index!;
+const crumbs = pageCrumbs(SECTIONS.articles.label, path);
+
+const dateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' });
+---
+
+<BaseLayout
+  title={page.data.seo.title}
+  description={page.data.seo.description}
+  {path}
+  {crumbs}
+  pageType="CollectionPage"
+  noindex={page.data.seo.noindex}
+  canonical={page.data.seo.canonical}
+  image={page.data.seo.image?.src}
+>
+  <PageHeader
+    mark={String(entries.length).padStart(2, '0')}
+    title={page.data.title}
+    lede={page.data.lede}
+    {crumbs}
+  />
+
+  <section class="l-page" aria-label="Articles">
+    <EntryList
+      numbered={false}
+      empty="No articles are published yet."
+      items={entries.map((entry) => ({
+        href: entryPath('articles', entry.id),
+        title: entry.data.title,
+        summary: entry.data.summary,
+        meta: dateFormat.format(entry.data.updatedAt ?? entry.data.publishedAt),
+      }))}
+    />
+  </section>
+
+  <section class="l-page l-section" aria-label="About the archive">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label">Note</p>
+      <div class="l-rail__body">
+        <Content />
+      </div>
+    </div>
+  </section>
+</BaseLayout>

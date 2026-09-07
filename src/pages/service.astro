@@ -1,0 +1,11 @@
+---
+import OfferingIndex from '~/components/OfferingIndex.astro';
+
+/*
+ * `/service`, singular, because that is the URL the live site has. Its five
+ * children are at `/services/*`. The inconsistency is real and reproducing it
+ * costs nothing; `data/redirects.csv` sends the plural guess here.
+ */
+---
+
+<OfferingIndex collection="services" singleton="servicesIndex" />

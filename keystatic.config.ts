@@ -125,6 +125,30 @@ const contentField = () =>
  * declaration read twice — see `src/lib/markdoc-tags.ts`. Hand-writing both is
  * how an editor ends up able to insert a tag the build rejects.
  */
+/**
+ * An index page: a title, a lede, an SEO block and an intro body.
+ *
+ * `at` is the URL it renders at, shown to the editor because it is the one
+ * thing about these three pages that is not guessable — `/service` is singular
+ * while its children are `/services/*`, and the articles index sits under
+ * `/company` while its entries do not. The routing itself is in
+ * src/lib/routes.ts.
+ */
+function indexPage(name: 'servicesIndex' | 'repairsIndex' | 'articlesIndex', label: string, at: string) {
+  return singleton({
+    label,
+    path: singletonPath(name),
+    format: { contentField: 'content' },
+    entryLayout: 'content',
+    schema: {
+      title: fields.text({ label: 'Title', description: `The H1 at ${at}.`, validation: { length: { min: 1 } } }),
+      lede: fields.text({ label: 'Lede', multiline: true, validation: { length: { min: 1, max: 320 } } }),
+      seo: seoField(),
+      content: contentField(),
+    },
+  });
+}
+
 function attributeField(attribute: TagAttribute) {
   // `exactOptionalPropertyTypes` is on, so an absent description has to be an
   // absent property rather than an explicit `undefined`.
@@ -269,8 +293,8 @@ export default config({
     brand: { name: site.shortName },
     navigation: {
       Pages: ['home', 'about', 'contact', 'careers', 'fleet'],
-      Work: ['services', 'repairs'],
-      Writing: ['articles'],
+      Work: ['servicesIndex', 'services', 'repairsIndex', 'repairs'],
+      Writing: ['articlesIndex', 'articles'],
       Proof: ['testimonials', 'faqs', 'accounts'],
       Site: ['settings', 'legal'],
     },
@@ -441,6 +465,15 @@ export default config({
         content: contentField(),
       },
     }),
+
+    /*
+     * The index pages. Each introduces the collection listed under it, so the
+     * only fields are the ones every page has — the list itself is the
+     * collection in the order its entries declare.
+     */
+    servicesIndex: indexPage('servicesIndex', 'Services index', '/service'),
+    repairsIndex: indexPage('repairsIndex', 'Repairs index', '/repair'),
+    articlesIndex: indexPage('articlesIndex', 'Articles index', '/company/articles'),
 
     about: singleton({
       label: 'About',

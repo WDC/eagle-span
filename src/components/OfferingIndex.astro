@@ -1,0 +1,71 @@
+---
+import { render } from 'astro:content';
+
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import EntryList from '~/components/EntryList.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import { getSingleton, listOfferings } from '~/lib/content.ts';
+import { SECTIONS, entryPath, pageCrumbs } from '~/lib/routes.ts';
+
+/*
+ * `/service` and `/repair`: the two pages Phase 0 found orphaned.
+ *
+ * Both were in the sitemap and neither was linked from any of the thirty
+ * crawled pages, because every template linked the fourteen children and
+ * skipped their parents. The header links these two on every page now, the
+ * footer links the children, and this page is the one that actually describes
+ * the section — which is why its copy is a singleton in the content model
+ * rather than four strings in this file.
+ */
+interface Props {
+  collection: 'services' | 'repairs';
+  singleton: 'servicesIndex' | 'repairsIndex';
+}
+
+const { collection, singleton } = Astro.props;
+
+const page = await getSingleton(singleton);
+const entries = await listOfferings(collection);
+const { Content } = await render(page);
+
+const path = SECTIONS[collection].index!;
+const crumbs = pageCrumbs(SECTIONS[collection].label, path);
+---
+
+<BaseLayout
+  title={page.data.seo.title}
+  description={page.data.seo.description}
+  {path}
+  {crumbs}
+  pageType="CollectionPage"
+  noindex={page.data.seo.noindex}
+  canonical={page.data.seo.canonical}
+  image={page.data.seo.image?.src}
+>
+  <PageHeader
+    mark={String(entries.length).padStart(2, '0')}
+    title={page.data.title}
+    lede={page.data.lede}
+    {crumbs}
+  />
+
+  <section class="l-page" aria-label={SECTIONS[collection].label}>
+    <EntryList
+      empty={`No ${SECTIONS[collection].label.toLowerCase()} are published yet.`}
+      items={entries.map((entry) => ({
+        href: entryPath(collection, entry.id),
+        title: entry.data.navLabel,
+        summary: entry.data.summary,
+      }))}
+    />
+  </section>
+
+  <section class="l-page l-section" aria-label="About this section">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label">Note</p>
+      <div class="l-rail__body">
+        <Content />
+      </div>
+    </div>
+  </section>
+</BaseLayout>

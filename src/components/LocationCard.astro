@@ -1,0 +1,91 @@
+---
+import { site, staticMap } from '~/site.config.ts';
+
+/*
+ * Where the shop is, as data.
+ *
+ * There is no Google Maps iframe here and there never will be — see
+ * `staticMap` in src/site.config.ts. Until the image exists the block is the
+ * NAP and a link to the listing, which is what a reader actually needs; the
+ * image is an improvement on that, not a prerequisite for it.
+ *
+ * Every string below renders from site.config, so this is one more place the
+ * phone number cannot pick up a sixth format.
+ */
+---
+
+<div class="location">
+  {
+    staticMap && (
+      <a class="location__map" href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
+        <img
+          src={staticMap.src}
+          alt={staticMap.alt}
+          width={staticMap.width}
+          height={staticMap.height}
+          loading="lazy"
+          decoding="async"
+        />
+        <span class="u-visually-hidden"> (opens Google Maps in a new tab)</span>
+      </a>
+    )
+  }
+
+  <dl class="location__spec">
+    <div class="location__row">
+      <dt class="u-label">Address</dt>
+      <dd>
+        <address>
+          {site.address.street}<br />
+          {site.address.locality}, {site.address.region} <span class="u-tabular">{site.address.postalCode}</span>
+        </address>
+      </dd>
+    </div>
+    <div class="location__row">
+      <dt class="u-label">Phone</dt>
+      <dd><a class="u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a></dd>
+    </div>
+    <div class="location__row">
+      <dt class="u-label">Hours</dt>
+      <dd class="u-tabular">{site.hours.days}, {site.hours.opens}–{site.hours.closes}</dd>
+    </div>
+    <div class="location__row">
+      <dt class="u-label">Area served</dt>
+      <dd>{site.areaServed}</dd>
+    </div>
+  </dl>
+
+  <p class="location__link">
+    <a href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
+      Open in Google Maps<span class="u-visually-hidden"> (opens in a new tab)</span>
+    </a>
+  </p>
+</div>
+
+<style>
+  .location { max-width: var(--measure-tight); }
+
+  .location__map {
+    display: block;
+    margin-block-end: var(--s-4);
+    border: var(--hairline) solid var(--c-rule);
+  }
+
+  .location__row {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: var(--s-3);
+    padding-block: var(--s-2);
+    border-block-start: var(--hairline) solid var(--c-rule);
+  }
+
+  .location__row dt { padding-block-start: 0.2em; }
+  .location__row dd { margin: 0; }
+  .location__row address { font-style: normal; line-height: var(--lh-body); }
+
+  .location__link { margin-block-start: var(--s-3); font-size: var(--t-fine); }
+
+  @media (width < 32rem) {
+    .location__row { grid-template-columns: minmax(0, 1fr); gap: var(--s-0); }
+  }
+</style>

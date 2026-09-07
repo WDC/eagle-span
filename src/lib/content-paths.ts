@@ -38,6 +38,17 @@ export const LOCATIONS = {
   accounts: { kind: 'collection', dir: 'accounts', ext: 'yaml' },
 
   home: { kind: 'singleton', dir: 'pages', file: 'home', ext: 'mdoc' },
+  /*
+   * The three index pages. Phase 4 added these: `/service`, `/repair` and
+   * `/company/articles` each carry a title, a meta description, an H1 and a
+   * lede on the live site, which makes them content — and the alternative was
+   * four strings hard-coded in a template, which is the drift this whole file
+   * exists to prevent. The file names say which singleton they are; the URLs
+   * they render at are in src/lib/routes.ts and are not derivable from either.
+   */
+  servicesIndex: { kind: 'singleton', dir: 'pages', file: 'services-index', ext: 'mdoc' },
+  repairsIndex: { kind: 'singleton', dir: 'pages', file: 'repairs-index', ext: 'mdoc' },
+  articlesIndex: { kind: 'singleton', dir: 'pages', file: 'articles-index', ext: 'mdoc' },
   about: { kind: 'singleton', dir: 'pages', file: 'about', ext: 'mdoc' },
   contact: { kind: 'singleton', dir: 'pages', file: 'contact', ext: 'mdoc' },
   careers: { kind: 'singleton', dir: 'pages', file: 'careers', ext: 'mdoc' },

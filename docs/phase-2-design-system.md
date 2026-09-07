@@ -100,14 +100,36 @@ that the required features survived subsetting, that the fallback order in
 
 | Context | Value | Where |
 | --- | --- | --- |
-| Prose | `oldstyle-nums proportional-nums diagonal-fractions` | `body` |
-| Specs, hours, phone, postal code | `lining-nums tabular-nums diagonal-fractions` | `.u-tabular` |
+| Prose | `oldstyle-nums proportional-nums` | `body` |
+| Specs, hours, phone, postal code | `lining-nums tabular-nums` | `.u-tabular` |
 | Readings, in-spec indicators | as above, in target green | `.u-reading` |
 | Rail labels | lining tabular, `case` punctuation | `.u-label` |
+| A fraction | `diagonal-fractions` | `.u-frac`, on the fraction itself |
 
 Old-style figures sit on the x-height and read as words, which is what a
 sentence containing a year wants. Lining tabular figures align down a column and
 read as data, which is what a spec sheet wants. Same font, two declarations.
+
+### Correction: `diagonal-fractions` is a run, not a block
+
+The first three rows above originally carried `diagonal-fractions` as well, on
+the reasoning that a spec column is where ⁷⁄₁₆ shows up. That was wrong, and
+visibly so: **it raised every full stop and comma on the site to numerator
+height.**
+
+`frac` in Source Sans 3 is three lookups, and only the last is the contextual
+rule that assembles a fraction around the slash. The first two are unconditional
+single substitutions — `period → period.n`, `comma → comma.n`, and every digit
+to its numerator form. The feature is built to be switched on for the fraction
+and off again; applied to `body` it applies to the whole paragraph. Subsetting
+had nothing to do with it — the upstream variable font has the same three
+lookups.
+
+Nothing caught it because Phase 2 shipped onto a one-page shell and Phase 1's
+prose was two sentences. Phase 4 put real copy on thirteen pages, which is when
+someone read one. `.u-frac` is now the only rule allowed to set it, and
+`verify:fonts` fails if the declaration appears anywhere else in `src/` —
+comments stripped, component `<style>` blocks included.
 
 The phone number gets `.u-nowrap` rather than an injected non-breaking space:
 the NAP has to stay byte-identical to the Google Business Profile, and a U+00A0

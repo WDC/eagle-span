@@ -1,0 +1,73 @@
+---
+import { render } from 'astro:content';
+
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import LocationCard from '~/components/LocationCard.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import { getSingleton } from '~/lib/content.ts';
+import { PAGES, pageCrumbs } from '~/lib/routes.ts';
+
+/*
+ * `/contact`.
+ *
+ * No Google Maps iframe. The live page embeds one — roughly 900 KB of
+ * third-party JavaScript, a set of cookies this site otherwise never sets, and
+ * therefore a consent question — for a picture of a street corner.
+ * `LocationCard.astro` gives the reader the two things that iframe was for,
+ * where the shop is and how to get directions, from this origin.
+ *
+ * The form is Phase 5, and it is the one serverless function the deployed site
+ * is ever meant to carry. `formIntro` and `formSuccess` are already in the
+ * content model so the copy around it is written by an editor rather than
+ * living inside the function.
+ */
+const page = await getSingleton('contact');
+const { Content } = await render(page);
+
+const path = PAGES.contact;
+const crumbs = pageCrumbs('Contact', path);
+---
+
+<BaseLayout
+  title={page.data.seo.title}
+  description={page.data.seo.description}
+  {path}
+  {crumbs}
+  pageType="ContactPage"
+  noindex={page.data.seo.noindex}
+  canonical={page.data.seo.canonical}
+  image={page.data.seo.image?.src}
+>
+  <PageHeader mark="Contact" title={page.data.title} lede={page.data.lede} {crumbs} />
+
+  <div class="l-page l-section contact">
+    <div class="contact__body">
+      <Content />
+      <p class="contact__form-note">{page.data.formIntro}</p>
+    </div>
+
+    <div class="contact__where">
+      <h2 class="u-label">Where</h2>
+      <LocationCard />
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .contact {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: var(--s-6) var(--gutter);
+    border-block-start: var(--hairline) solid var(--c-rule);
+    padding-block-start: var(--s-5);
+  }
+
+  .contact__form-note {
+    margin-block-start: var(--s-5);
+    padding-block-start: var(--s-3);
+    border-block-start: var(--hairline) solid var(--c-rule);
+    color: var(--c-ink-2);
+  }
+
+  .contact__where h2 { margin-block-end: var(--s-3); }
+</style>
