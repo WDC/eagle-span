@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  # Branch pushes are covered by the pull_request trigger. Listening to both
+  # ran every gate twice on each PR commit.
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
 
 concurrency:
