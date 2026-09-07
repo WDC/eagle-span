@@ -109,6 +109,26 @@ experience, the other is the gate. Zod is the authority — it rejects bad
 content whatever wrote it — and the two are kept close enough to read side by
 side.
 
+### What the editor actually writes
+
+The model was checked against a real save, not against the documentation: the
+admin UI was driven in a browser, a field edited, Save pressed, and the file
+read back.
+
+* An optional field left empty is **omitted**, not written as `''` or `null`.
+  So `.optional()` is the whole of it in `src/content.config.ts`, and an empty
+  string in a hand-edited file fails loudly rather than being quietly read as
+  "unset".
+* Frontmatter is re-serialised: long strings fold at 80 columns, and Markdoc
+  tags are reformatted onto their own lines. A hand-written entry is therefore
+  reformatted the first time it is edited. The seeded entries are written the
+  way Keystatic writes them, so that diff is not waiting for Phase 3.
+* **Content files are machine-written**, which means a YAML comment in one does
+  not survive an edit. Explanation belongs in this document.
+
+The Markdoc body survived the round trip unchanged in meaning: every tag and
+attribute came back, reformatted.
+
 ### The NAP is not content
 
 No phone number, address, hours or business name appears in any schema. They are
@@ -244,9 +264,6 @@ not exist.
 
 ## What Phase 3 and Phase 4 inherit
 
-* **Content files are machine-written.** Keystatic rewrites a file on save, so a
-  YAML comment in one does not survive being edited. Explanation belongs in this
-  document, not in the content.
 * **An inline tag must stay inline.** `{% address /%}` at the start of a line is
   parsed as a block and fails validation. The editor writes them inline; a hand
   edit can get it wrong, and the build says so.

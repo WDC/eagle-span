@@ -35,15 +35,16 @@ const from = (name: ContentName) => glob(globArgs(name));
 
 type ImageFn = SchemaContext['image'];
 
-/**
- * Keystatic does not omit an optional field it was left empty — it writes it.
- * Empty text is `''`, an unset image, date or relationship is `null`. Both mean
- * "not set", and a schema that only accepts `undefined` would fail the first
- * time an editor saved a page without filling in an optional field. This is the
- * one place the two halves of the model have to meet in the middle.
+/*
+ * Optional means absent. Keystatic omits a field that was left empty rather
+ * than writing `''` or `null` — checked by saving an entry through the editor
+ * and reading the file back — so `.optional()` is the whole of it, and an empty
+ * string in a hand-edited file fails loudly instead of being read as "unset".
+ *
+ * Dates are coerced because YAML gives a quoted date back as a string and an
+ * unquoted one as a Date, and which of the two is on disk is not a decision
+ * anybody made.
  */
-const optional = <T extends z.ZodTypeAny>(schema: T) =>
-  z.preprocess((value) => (value === '' || value === null ? undefined : value), schema.optional());
 
 /**
  * Bounds, not style rules.
@@ -59,9 +60,9 @@ const seoSchema = (image: ImageFn) =>
     title: z.string().min(1).max(70),
     description: z.string().min(50).max(165),
     /** Overrides the generated OG image. Phase 4 generates the default. */
-    image: optional(image()),
+    image: image().optional(),
     noindex: z.boolean().default(false),
-    canonical: optional(z.string().url()),
+    canonical: z.string().url().optional(),
   });
 
 /** Fields every routed entry has. */
@@ -71,9 +72,9 @@ const routed = (image: ImageFn) =>
     title: z.string().min(1),
     summary: z.string().min(1).max(240),
     seo: seoSchema(image),
-    hero: optional(image()),
+    hero: image().optional(),
     /** Required with `hero`, checked below. Alt text was present on every image the crawl found; parity means keeping it. */
-    heroAlt: optional(z.string().min(1)),
+    heroAlt: z.string().min(1).optional(),
     draft: z.boolean().default(false),
   });
 
@@ -129,16 +130,16 @@ const articles = defineCollection({
       routed(image).extend({
         publishedAt: z.coerce.date(),
         /** Only when the piece was genuinely revised. A touched date on an untouched article is a lie to a crawler. */
-        updatedAt: optional(z.coerce.date()),
+        updatedAt: z.coerce.date().optional(),
         /** Falls back to the business in Phase 4's Article node; the live articles carry no byline. */
-        author: optional(z.string().min(1)),
+        author: z.string().min(1).optional(),
         topics: z.array(z.string().min(1)).default([]),
         /**
          * Phase 3 consolidates the archive. A folded article names its survivor
          * here; the redirect row and `seo.canonical` follow from it, and nothing
          * has to remember which of the two decisions was made first.
          */
-        supersededBy: optional(reference('articles')),
+        supersededBy: reference('articles').optional(),
       }),
     ),
 });
@@ -180,12 +181,12 @@ const testimonials = defineCollection({
      * placeholder one.
      */
     name: z.string().min(1),
-    role: optional(z.string().min(1)),
-    company: optional(z.string().min(1)),
-    rating: optional(z.number().int().min(1).max(5)),
+    role: z.string().min(1).optional(),
+    company: z.string().min(1).optional(),
+    rating: z.number().int().min(1).max(5).optional(),
     /** Where it was said. A Review node without a source is not one. */
     source: z.enum(['google', 'direct']).default('direct'),
-    date: optional(z.coerce.date()),
+    date: z.coerce.date().optional(),
     order: z.number().int().min(0).default(0),
   }),
 });
@@ -196,10 +197,10 @@ const accounts = defineCollection({
     z.object({
       /** The billing network or national account programme, as the fleet customer knows it. */
       name: z.string().min(1),
-      logo: optional(image()),
-      logoAlt: optional(z.string().min(1)),
-      url: optional(z.string().url()),
-      note: optional(z.string().max(240)),
+      logo: image().optional(),
+      logoAlt: z.string().min(1).optional(),
+      url: z.string().url().optional(),
+      note: z.string().max(240).optional(),
       order: z.number().int().min(0).default(0),
     }),
 });
@@ -218,11 +219,11 @@ const accounts = defineCollection({
 const heroSchema = (image: ImageFn) =>
   z.object({
     /** The rail label above the H1: a section number or a short qualifier. */
-    eyebrow: optional(z.string().max(40)),
+    eyebrow: z.string().max(40).optional(),
     heading: z.string().min(1),
     lede: z.string().min(1).max(320),
-    image: optional(image()),
-    imageAlt: optional(z.string().min(1)),
+    image: image().optional(),
+    imageAlt: z.string().min(1).optional(),
   });
 
 const pageBase = (image: ImageFn) =>
@@ -240,7 +241,7 @@ const home = defineCollection({
       hero: heroSchema(image),
       /** The measurement rail, as content: years in business, bays, turnaround. */
       stats: z
-        .array(z.object({ label: z.string().min(1), value: z.string().min(1), note: optional(z.string().min(1)) }))
+        .array(z.object({ label: z.string().min(1), value: z.string().min(1), note: z.string().min(1).optional() }))
         .max(4)
         .default([]),
       featuredServices: z.array(reference('services')).max(6).default([]),
@@ -304,15 +305,15 @@ const settings = defineCollection({
       /* An object field is always written, so this is present and off rather than absent. */
       announcement: z.object({
         enabled: z.boolean().default(false),
-        text: optional(z.string().max(160)),
-        href: optional(z.string().min(1)),
+        text: z.string().max(160).optional(),
+        href: z.string().min(1).optional(),
       }),
       /** Feeds `sameAs` in the JSON-LD graph alongside the Maps listing. */
       social: z
         .array(z.object({ label: z.string().min(1), url: z.string().url() }))
         .default([]),
-      defaultSocialImage: optional(image()),
-      footerNote: optional(z.string().max(240)),
+      defaultSocialImage: image().optional(),
+      footerNote: z.string().max(240).optional(),
     }),
 });
 
