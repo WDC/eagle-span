@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 
 import { CONTENT_DIR, LOCATIONS, expectedPaths } from '../src/lib/content-paths.ts';
-import { TAGS } from '../src/lib/markdoc-tags.ts';
+import { NODE_COMPONENTS, TAGS } from '../src/lib/markdoc-tags.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -60,6 +60,17 @@ for (const tag of TAGS) {
   }
 }
 
+/*
+ * ...and so does every node we render ourselves. `document` and `link` are not
+ * tags an editor inserts, so no content file exercises them by name — a typo in
+ * either path would only surface as a broken page.
+ */
+for (const [node, componentPath] of Object.entries(NODE_COMPONENTS)) {
+  if (!existsSync(resolve(root, componentPath))) {
+    fail(`the ${node} node renders ${componentPath}, which does not exist`);
+  }
+}
+
 /* 2. Every collection has its directory, and every singleton has its file. */
 const claimed = new Set();
 for (const name of Object.keys(LOCATIONS)) {
@@ -91,6 +102,7 @@ const collections = Object.values(LOCATIONS).filter((l) => l.kind === 'collectio
 const singletons = Object.keys(LOCATIONS).length - collections;
 console.log(
   `\ncontent: ${collections} collections, ${singletons} singletons, ${TAGS.length} tags, ` +
+  `${Object.keys(NODE_COMPONENTS).length} nodes, ` +
   `${claimed.size} entries, ${failures} problem${failures === 1 ? '' : 's'}.`,
 );
 if (failures) process.exit(1);

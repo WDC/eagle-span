@@ -13,6 +13,7 @@ across fontTools versions and a regenerate-and-compare gate would flake.
 Writes:
     public/fonts/eagle-span-sans-{roman,italic}-var.<hash>.woff2
     public/fonts/OFL.txt              upstream licence, served next to the fonts
+    data/og-fonts/eagle-span-og-{regular,semibold}.ttf   build input, never served
     src/styles/fonts.css              @font-face + metric-adjusted fallbacks
     src/lib/fonts.generated.ts        hashed hrefs, for the preload in BaseLayout
     data/fonts.json                   provenance, metrics, hashes — the manifest
@@ -46,6 +47,33 @@ from fontTools.varLib.instancer import instantiateVariableFont
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / ".cache" / "fonts"
 PUBLIC = ROOT / "public" / "fonts"
+
+# --------------------------------------------------------------------------
+# Open-graph fonts
+# --------------------------------------------------------------------------
+
+# satori rasterises the OG cards at build time and it cannot read woff2 — only
+# ttf, otf and woff — and it cannot read a variable font's named instances
+# either: it wants one file per weight. So the two faces the cards use are
+# pinned static instances of the same upstream, subset the same way, and
+# committed as a build input.
+#
+# They live in data/ and NOT in public/, which is the whole point. A browser
+# never fetches these; they exist so `astro build` can draw text into a PNG.
+# Putting them under public/ would ship 55 KB of duplicate letterforms to every
+# visitor for no reason and put them in the Lighthouse font budget.
+OG_FONTS = ROOT / "data" / "og-fonts"
+
+# 400 and 620 are body and heading weight from tokens.css. 620 is not a named
+# instance in the STAT table, which is why the instancer runs with
+# updateFontNames off — the file's internal name is irrelevant, the OG renderer
+# registers it under an explicit family and weight.
+OG_WEIGHTS = ((400, "regular"), (620, "semibold"))
+
+# No `onum`, `pnum` or `frac` here. The cards set one headline and two labels;
+# there is no prose to give old-style figures to and no spec column to align,
+# and every feature retained is bytes in a file that ships in the repository.
+OG_LAYOUT_FEATURES = ("ccmp", "locl", "kern", "mark", "mkmk", "liga", "case")
 
 # --------------------------------------------------------------------------
 # Upstream. Pinned by digest — a silent upstream change would otherwise ship
@@ -283,6 +311,53 @@ def subset(path: Path, style: str) -> tuple[bytes, dict[str, object]]:
     return out.read_bytes(), metrics
 
 
+def build_og_fonts(path: Path) -> list[dict[str, object]]:
+    """Static instances of the roman face, for the build-time OG renderer."""
+    OG_FONTS.mkdir(parents=True, exist_ok=True)
+    for stale in OG_FONTS.glob("*.ttf"):
+        stale.unlink()
+
+    options = Options()
+    options.layout_features = list(OG_LAYOUT_FEATURES)
+    options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 13, 14]  # keep the licence in the file
+    options.name_legacy = False
+    options.notdef_outline = False
+    options.hinting = False
+    options.drop_tables += ["DSIG"]
+
+    faces: list[dict[str, object]] = []
+    for weight, style in OG_WEIGHTS:
+        # recalcTimestamp=False keeps `head.modified` from being set to "now",
+        # which is what makes these two files byte-reproducible — unlike the
+        # woff2 subsets, whose brotli output varies with the fontTools version.
+        # That is what lets verify-fonts.mjs treat a digest mismatch here as a
+        # real change rather than as a rebuild.
+        font = instantiateVariableFont(
+            TTFont(path, recalcTimestamp=False),
+            {"wght": weight},
+            inplace=False,
+            updateFontNames=False,
+        )
+        font.recalcTimestamp = False
+        subsetter = Subsetter(options=options)
+        subsetter.populate(unicodes=[c for lo, hi in UNICODES for c in range(lo, hi + 1)])
+        subsetter.subset(font)
+
+        name = f"eagle-span-og-{style}.ttf"
+        font.save(OG_FONTS / name)
+        data = (OG_FONTS / name).read_bytes()
+        print(f"  {name}  {len(data) / 1024:.1f} KB  wght {weight}")
+        faces.append(
+            {
+                "file": name,
+                "weight": weight,
+                "bytes": len(data),
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
+        )
+    return faces
+
+
 def unicode_range_css() -> str:
     parts = [f"U+{lo:04X}" if lo == hi else f"U+{lo:04X}-{hi:04X}" for lo, hi in UNICODES]
     return ", ".join(parts)
@@ -291,6 +366,30 @@ def unicode_range_css() -> str:
 def format_pct(value: float) -> str:
     """Three decimals is well inside a rounding error of a device pixel."""
     return f"{value * 100:.3f}".rstrip("0").rstrip(".") + "%"
+
+
+def build_og_only() -> None:
+    """Refresh just the OG fonts and the manifest key that describes them.
+
+    The woff2 subsets are deliberately left alone. Their brotli output is not
+    reproducible across fontTools versions, so a full rebuild renames both
+    shipped files and rewrites fonts.css and the preload module for no change in
+    letterform — churn in a diff that has to be reviewed. Reach for the full
+    `build()` when the font, the subset or the retained features actually
+    change.
+    """
+    manifest_path = ROOT / "data" / "fonts.json"
+    manifest = json.loads(manifest_path.read_text())
+
+    print("open graph:")
+    og_faces = build_og_fonts(fetch(SOURCES[0]))
+
+    manifest["openGraph"] = {
+        "_note": "Build input for the OG renderer. Never served — see OG_FONTS in build-fonts.py.",
+        "dir": "data/og-fonts",
+        "faces": og_faces,
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
 
 
 def build() -> None:
@@ -318,6 +417,9 @@ def build() -> None:
                 "metrics": metrics,
             }
         )
+
+    print("open graph:")
+    og_faces = build_og_fonts(fetch(SOURCES[0]))
 
     licence = CACHE / "OFL.txt"
     if not licence.exists():
@@ -350,6 +452,11 @@ def build() -> None:
         "unicodeRange": unicode_range_css(),
         "faces": faces,
         "fallbacks": fallbacks,
+        "openGraph": {
+            "_note": "Build input for the OG renderer. Never served — see OG_FONTS in build-fonts.py.",
+            "dir": "data/og-fonts",
+            "faces": og_faces,
+        },
     }
     (ROOT / "data" / "fonts.json").write_text(json.dumps(manifest, indent=2) + "\n")
 
@@ -439,6 +546,6 @@ export const fontFiles = {{
 
 if __name__ == "__main__":
     try:
-        build()
+        build_og_only() if "--og-only" in sys.argv[1:] else build()
     except KeyboardInterrupt:
         sys.exit(130)

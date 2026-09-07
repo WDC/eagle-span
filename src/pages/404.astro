@@ -1,12 +1,19 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
-import { site } from '~/site.config.ts';
+import { SECTIONS } from '~/lib/routes.ts';
 
-const title = `Page not found | ${site.name}`;
-const description = 'That page has moved or no longer exists.';
+/*
+ * The brand suffix and the robots meta are BaseLayout's, so this passes the
+ * bare title. `noindex` on a 404 is belt and braces — Vercel serves it with a
+ * 404 status, which is what actually keeps it out — but a soft 404 reached
+ * through a link is a page Google will otherwise consider.
+ */
+const title = 'Page not found';
+const description = 'That page has moved or no longer exists. Every URL from the previous site redirects to its replacement.';
 ---
 
-<BaseLayout {title} {description} path="/404">
+{/* `image={null}`: no OG card. Nothing links to a 404 and nobody shares one. */}
+<BaseLayout {title} {description} path="/404" noindex image={null}>
   <section class="l-page l-section">
     <div class="l-rail">
       <p class="l-rail__mark u-label u-tabular">404</p>
@@ -14,7 +21,9 @@ const description = 'That page has moved or no longer exists.';
         <h1>That page has moved</h1>
         <p>
           Every URL from the previous site redirects to its replacement. If you reached this page
-          from a link, <a href="/">start from the homepage</a> and we will get you there.
+          from a link, start from the <a href="/">homepage</a>, the
+          <a href={SECTIONS.services.index!}>services</a> or the
+          <a href={SECTIONS.repairs.index!}>repairs</a> and we will get you there.
         </p>
       </div>
     </div>

@@ -16,7 +16,14 @@ jobs:
     name: Static gates
     runs-on: ubuntu-latest
     steps:
+      # Full history. `src/lib/lastmod.ts` reads the commit that last touched
+      # each content file to produce the sitemap's `lastmod`; at the default
+      # depth of 1 every path reports the tip commit, so it detects the shallow
+      # clone and omits the dates entirely rather than shipping the same wrong
+      # one fourteen times. `verify:sitemap` then has nothing to check.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -73,6 +80,13 @@ jobs:
       - name: JSON-LD validation
         run: bun run verify:jsonld
 
+      # The sitemap is written by src/pages/sitemap.xml.ts rather than by an
+      # integration, which is what lets its `lastmod` come from the content and
+      # from git. This is the check that replaces what the integration
+      # guaranteed for free: the sitemap and the built site list the same pages.
+      - name: Sitemap
+        run: bun run verify:sitemap
+
       - name: Link check
         uses: lycheeverse/lychee-action@v2
         with:
@@ -119,7 +133,14 @@ jobs:
       # domain; verify-redirects.mjs says which case it is looking at.
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
+      # Full history. `src/lib/lastmod.ts` reads the commit that last touched
+      # each content file to produce the sitemap's `lastmod`; at the default
+      # depth of 1 every path reports the tip commit, so it detects the shallow
+      # clone and omits the dates entirely rather than shipping the same wrong
+      # one fourteen times. `verify:sitemap` then has nothing to check.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2
         with:

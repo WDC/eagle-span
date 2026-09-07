@@ -1,0 +1,57 @@
+---
+import type { FaqItem } from '~/lib/schema.ts';
+
+/*
+ * The rendered half of the `FAQPage` node.
+ *
+ * Every answer is visible text, not a collapsed `<details>`: an `acceptedAnswer`
+ * a reader cannot find on the page is the structured-data violation Google
+ * actions manually, and the whole reason the `faqs` collection has no Markdoc
+ * body is so this markup and the JSON-LD can share one string rather than two
+ * that drift.
+ */
+interface Props {
+  items: readonly FaqItem[];
+  heading?: string | undefined;
+}
+
+const { items, heading = 'Common questions' } = Astro.props;
+---
+
+{
+  items.length > 0 && (
+    <section class="l-page l-section faqs" aria-labelledby="faqs-heading">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label u-tabular">FAQ</p>
+        <div class="l-rail__body">
+          <h2 id="faqs-heading">{heading}</h2>
+          <dl class="faqs__list">
+            {items.map((faq) => (
+              <div class="faqs__row">
+                <dt class="faqs__q">{faq.question}</dt>
+                <dd class="faqs__a">{faq.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .faqs__list { margin-block-start: var(--s-4); }
+
+  .faqs__row {
+    padding-block: var(--s-3);
+    border-block-start: var(--hairline) solid var(--c-rule);
+    max-width: var(--measure);
+  }
+
+  .faqs__q { font-weight: 620; }
+
+  .faqs__a {
+    margin: var(--s-1) 0 0;
+    color: var(--c-ink-2);
+  }
+</style>

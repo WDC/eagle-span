@@ -1,0 +1,22 @@
+---
+
+import OfferingPage from '~/components/OfferingPage.astro';
+import { listOfferings } from '~/lib/content.ts';
+
+/*
+ * `/repairs/{slug}`, unchanged from the live site. The whole shape lives in
+ * OfferingPage.astro; this file exists to say which collection it is reading
+ * and to number the pages in the same order the index lists them.
+ */
+export async function getStaticPaths() {
+  const entries = await listOfferings('repairs');
+  return entries.map((entry, i) => ({
+    params: { slug: entry.id },
+    props: { entry, mark: String(i + 1).padStart(2, '0') },
+  }));
+}
+
+const { entry, mark } = Astro.props;
+---
+
+<OfferingPage collection="repairs" {entry} {mark} />

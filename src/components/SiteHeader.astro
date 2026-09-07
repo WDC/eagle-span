@@ -1,0 +1,144 @@
+---
+import { NAV, PAGES } from '~/lib/routes.ts';
+import { site } from '~/site.config.ts';
+import { getSingleton } from '~/lib/content.ts';
+
+/*
+ * The header, on every page.
+ *
+ * The navigation is the fix for Phase 0 defect 10. `/service` and `/repair` are
+ * both in the sitemap and neither was linked from any of the thirty crawled
+ * pages — every template linked the fourteen children directly and skipped
+ * their parents, so the two index pages accumulated no internal link equity at
+ * all. Linking the indexes rather than the children is deliberate: fourteen
+ * links in a header is a menu nobody reads and a link graph with no shape.
+ *
+ * The phone number is in the header because it is the action most visitors
+ * want, and it renders from site.config like every other instance of it.
+ */
+const settings = await getSingleton('settings');
+const { cta, announcement } = settings.data;
+
+const path = Astro.url.pathname;
+/* A section is current when the page is the index or one of its children. */
+const isCurrent = (href: string) => path === href || (href !== '/' && path.startsWith(`${href}/`));
+---
+
+{
+  announcement.enabled && announcement.text && (
+    <aside class="announce" aria-label="Announcement">
+      <div class="l-page">
+        {announcement.href ? <a href={announcement.href}>{announcement.text}</a> : <span>{announcement.text}</span>}
+      </div>
+    </aside>
+  )
+}
+
+<header class="masthead">
+  <div class="l-page masthead__inner">
+    <a class="masthead__brand" href={PAGES.home}>
+      <span class="masthead__name">{site.name}</span>
+      <span class="masthead__place u-label">{site.address.locality}, {site.address.region}</span>
+    </a>
+
+    <nav class="masthead__nav" aria-label="Primary">
+      <ul class="masthead__list">
+        {
+          NAV.map((item) => (
+            <li>
+              <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="masthead__action">
+      <a class="masthead__phone u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a>
+      <a class="masthead__cta" href={cta.href}>{cta.label}</a>
+    </div>
+  </div>
+</header>
+
+<style>
+  .announce {
+    background: var(--c-ink);
+    color: var(--c-ground);
+    font-size: var(--t-fine);
+    padding-block: var(--s-1);
+  }
+
+  .masthead {
+    border-block-end: var(--hairline) solid var(--c-rule);
+    background: var(--c-ground);
+  }
+
+  .masthead__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-3) var(--s-5);
+    padding-block: var(--s-3);
+  }
+
+  .masthead__brand {
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+    margin-inline-end: auto;
+  }
+
+  .masthead__name { font-weight: 620; letter-spacing: var(--ls-heading); }
+
+  .masthead__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-4);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .masthead__list a {
+    text-decoration: none;
+    font-size: var(--t-fine);
+  }
+
+  .masthead__list a:hover { text-decoration: underline; }
+
+  /*
+   * The current section is marked with a rule under the label, not a colour
+   * swap: the mark has to survive being read by someone who cannot see it, and
+   * `aria-current` is what actually says "you are here".
+   */
+  .masthead__list a[aria-current='page'] {
+    border-block-end: 2px solid var(--c-ink);
+    padding-block-end: 0.15em;
+  }
+
+  .masthead__action {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-3);
+  }
+
+  .masthead__phone { font-weight: 620; text-decoration: none; }
+  .masthead__phone:hover { text-decoration: underline; }
+
+  .masthead__cta {
+    font-size: var(--t-fine);
+    text-decoration: none;
+    padding: var(--s-1) var(--s-3);
+    border: var(--hairline) solid var(--c-ink);
+  }
+
+  .masthead__cta:hover { background: var(--c-ink); color: var(--c-ground); }
+
+  @media (width < 48rem) {
+    .masthead__brand { margin-inline-end: 0; width: 100%; }
+    .masthead__action { margin-inline-start: auto; }
+  }
+</style>

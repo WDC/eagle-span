@@ -1,0 +1,143 @@
+---
+import { render } from 'astro:content';
+
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import { listArticles } from '~/lib/content.ts';
+import { crumbsFor, entryPath } from '~/lib/routes.ts';
+import { articleNode } from '~/lib/schema.ts';
+import { site } from '~/site.config.ts';
+
+/*
+ * `/articles/{slug}` — not `/company/articles/{slug}`. The Phase 0 crawl
+ * corrected the task's assumption here: the index sits under `/company` but
+ * the seven entries never did, and moving them to make the two agree would
+ * spend ranking on tidiness.
+ *
+ * This is the one template that keeps an `<article>` element, and it owns it
+ * rather than inheriting it: Markdoc used to wrap every rendered body in one,
+ * which put an `<article>` inside this `<article>` and an `<article>` around
+ * a service page's spec table. The wrapper moved here, where the template
+ * knows what the content is.
+ */
+export async function getStaticPaths() {
+  const entries = await listArticles();
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+
+const path = entryPath('articles', entry.id);
+const { Content } = await render(entry);
+
+const crumbs = crumbsFor('articles', data.title, path);
+
+/*
+ * A date is a reading: lining tabular figures, and an ISO `datetime` so the
+ * machine-readable value and the printed one come from the same Date rather
+ * than from two formatters.
+ */
+const dateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone: 'UTC' });
+const published = data.publishedAt;
+const updated = data.updatedAt;
+
+const schema = [
+  articleNode({
+    path,
+    headline: data.title,
+    description: data.summary,
+    publishedAt: published,
+    updatedAt: updated,
+    author: data.author,
+    image: data.hero ? `${site.url}${data.hero.src}` : undefined,
+  }),
+];
+---
+
+<BaseLayout
+  title={data.seo.title}
+  description={data.seo.description}
+  {path}
+  {crumbs}
+  {schema}
+  pageType="ItemPage"
+  ogType="article"
+  noindex={data.seo.noindex}
+  canonical={data.seo.canonical}
+  image={data.seo.image?.src}
+  imageAlt={data.seo.image ? data.title : undefined}
+>
+  <article>
+    <PageHeader mark="Article" title={data.title} lede={data.summary} {crumbs}>
+      <p class="byline">
+        <span class="byline__by">{data.author ?? site.name}</span>
+        <time class="u-tabular" datetime={published.toISOString()}>{dateFormat.format(published)}</time>
+        {
+          updated && (
+            <span class="byline__updated">
+              Updated <time class="u-tabular" datetime={updated.toISOString()}>{dateFormat.format(updated)}</time>
+            </span>
+          )
+        }
+      </p>
+    </PageHeader>
+
+    {
+      data.hero && (
+        <figure class="l-page hero">
+          <img
+            src={data.hero.src}
+            alt={data.heroAlt}
+            width={data.hero.width}
+            height={data.hero.height}
+            decoding="async"
+          />
+        </figure>
+      )
+    }
+
+    <div class="l-page l-section">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label u-tabular">{published.getUTCFullYear()}</p>
+        <div class="l-rail__body">
+          <Content />
+
+          {
+            data.topics.length > 0 && (
+              <ul class="topics">
+                {data.topics.map((topic: string) => <li class="u-label">{topic}</li>)}
+              </ul>
+            )
+          }
+        </div>
+      </div>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .byline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-3);
+    font-size: var(--t-fine);
+    color: var(--c-ink-3);
+  }
+
+  .byline__by { color: var(--c-ink-2); }
+
+  .hero { margin-block-start: var(--s-4); }
+  .hero img { width: 100%; }
+
+  .topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    list-style: none;
+    padding: 0;
+    margin-block-start: var(--s-6);
+    padding-block-start: var(--s-3);
+    border-block-start: var(--hairline) solid var(--c-rule);
+  }
+</style>

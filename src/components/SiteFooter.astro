@@ -1,0 +1,132 @@
+---
+import { NAV, PAGES, SECTIONS } from '~/lib/routes.ts';
+import { getSingleton, listOfferings } from '~/lib/content.ts';
+import { entryPath } from '~/lib/routes.ts';
+import { site } from '~/site.config.ts';
+
+/*
+ * The footer, and the site's second link to every service and repair.
+ *
+ * The header links the two indexes; this links all fourteen children. Between
+ * them every page is one hop from every other, which is the shape the crawl
+ * found missing — and it is why the list here is built from the collections
+ * rather than written out.
+ *
+ * The hours link goes to `site.mapsUrl`. On the live homepage the same link
+ * points at AES Truck Repair in Springfield, Missouri (Phase 0 defect 2). There
+ * is exactly one Maps URL in this codebase and it is the shop's.
+ */
+const settings = await getSingleton('settings');
+const { social, footerNote } = settings.data;
+
+const [services, repairs] = await Promise.all([listOfferings('services'), listOfferings('repairs')]);
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="l-page footer__inner">
+    <div class="footer__nap l-stack">
+      <p class="u-label">Eagle Span</p>
+      <p class="footer__name">{site.name}</p>
+      <address class="footer__address">
+        {site.address.street}<br />
+        {site.address.locality}, {site.address.region} <span class="u-tabular">{site.address.postalCode}</span>
+      </address>
+      <p>
+        <a class="u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a>
+      </p>
+      <p class="u-tabular">{site.hours.days}, {site.hours.opens}–{site.hours.closes}</p>
+      <p>
+        <a href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
+          Directions<span class="u-visually-hidden"> (opens in a new tab)</span>
+        </a>
+      </p>
+    </div>
+
+    <nav class="footer__col" aria-label="Services">
+      <p class="u-label"><a href={SECTIONS.services.index!}>{SECTIONS.services.label}</a></p>
+      <ul>
+        {services.map((entry) => <li><a href={entryPath('services', entry.id)}>{entry.data.navLabel}</a></li>)}
+      </ul>
+    </nav>
+
+    <nav class="footer__col" aria-label="Repairs">
+      <p class="u-label"><a href={SECTIONS.repairs.index!}>{SECTIONS.repairs.label}</a></p>
+      <ul>
+        {repairs.map((entry) => <li><a href={entryPath('repairs', entry.id)}>{entry.data.navLabel}</a></li>)}
+      </ul>
+    </nav>
+
+    <nav class="footer__col" aria-label="Company">
+      <p class="u-label">Company</p>
+      <ul>
+        {NAV.filter((item) => item.href !== SECTIONS.services.index && item.href !== SECTIONS.repairs.index).map(
+          (item) => <li><a href={item.href}>{item.label}</a></li>,
+        )}
+        <li><a href={SECTIONS.articles.index!}>{SECTIONS.articles.label}</a></li>
+        <li><a href={PAGES.careers}>Careers</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="l-page footer__legal">
+    {footerNote && <p class="footer__note">{footerNote}</p>}
+    {
+      social.length > 0 && (
+        <ul class="footer__social">
+          {social.map((link) => (
+            <li>
+              <a href={link.url} target="_blank" rel="noopener noreferrer">
+                {link.label}<span class="u-visually-hidden"> (opens in a new tab)</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <p class="footer__copy u-tabular">© {year} {site.name}</p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-block-start: var(--hairline) solid var(--c-rule);
+    margin-block-start: var(--s-8);
+    padding-block: var(--s-6) var(--s-5);
+    background: var(--c-ground-2);
+  }
+
+  .footer__inner {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: var(--s-5) var(--gutter);
+  }
+
+  .footer__name { font-weight: 620; }
+  .footer__address { font-style: normal; line-height: var(--lh-body); }
+
+  .footer__col ul {
+    list-style: none;
+    padding: 0;
+    margin-block-start: var(--s-2);
+    display: grid;
+    gap: var(--s-1);
+    font-size: var(--t-fine);
+  }
+
+  .footer__legal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-3) var(--s-5);
+    margin-block-start: var(--s-6);
+    padding-block-start: var(--s-3);
+    border-block-start: var(--hairline) solid var(--c-rule);
+    font-size: var(--t-fine);
+    color: var(--c-ink-3);
+  }
+
+  .footer__note { max-width: var(--measure-tight); }
+  .footer__social { display: flex; gap: var(--s-3); list-style: none; padding: 0; }
+  .footer__copy { margin-inline-start: auto; }
+</style>

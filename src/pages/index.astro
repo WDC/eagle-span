@@ -1,95 +1,253 @@
 ---
+import { getEntries, render } from 'astro:content';
+
 import BaseLayout from '~/layouts/BaseLayout.astro';
-import { site } from '~/site.config.ts';
-import { typo } from '~/lib/typography.ts';
+import EntryList from '~/components/EntryList.astro';
+import Faqs from '~/components/Faqs.astro';
+import LocationCard from '~/components/LocationCard.astro';
+import { getSingleton, resolveFaqs, resolveOfferings } from '~/lib/content.ts';
+import { PAGES, SECTIONS, entryPath } from '~/lib/routes.ts';
+import { faqPageNode } from '~/lib/schema.ts';
 
 /*
- * Skeleton homepage. Phase 1 exists to get every CI gate green on an empty
- * shell before any page work starts, so this deliberately carries no migrated
- * copy — it proves the layout, tokens, schema graph and NAP wiring only.
- * Real content lands in Phase 3.
+ * The homepage.
  *
- * Phase 2 adds the type pipeline to it: the copy below runs through `typo()`,
- * which is what markdown gets from the remark plugin. The strings in this file
- * are not markdown, so they would otherwise be the one place on the site where
- * a straight quote survives to the page.
+ * No breadcrumb: a one-item BreadcrumbList says nothing, and a trail whose only
+ * entry is the page you are on is not a trail. `BaseLayout` drops the node
+ * below two crumbs for the same reason.
  *
- * The business name comes from site.config rather than being written out, so
- * the spelling cannot drift back apart the way it did on the Webflow site.
+ * No `Review` nodes either, and that is a decision rather than an omission.
+ * Google's structured-data policy disallows review markup a business writes
+ * about itself, and the crawl found the live homepage rendering the literal
+ * placeholder "Position, Company name" over a reviewer's name — the exact
+ * failure that markup would have published to a search result. Testimonials
+ * render as what they are: quotes on a page, with real attribution or none.
  */
+const page = await getSingleton('home');
+const { Content } = await render(page);
+const { hero, stats } = page.data;
 
-const title = `Heavy-Duty Truck Repair Shop in Charlotte, NC | ${site.shortName}`;
-const description = typo(
-  `${site.name} provides heavy-duty truck and trailer repair for owner-operators and commercial fleets in Charlotte, North Carolina.`,
-  { widont: false },
-);
+const [services, repairs, testimonials, faqs] = await Promise.all([
+  resolveOfferings('services', page.data.featuredServices),
+  resolveOfferings('repairs', page.data.featuredRepairs),
+  page.data.testimonials.length ? getEntries(page.data.testimonials) : [],
+  resolveFaqs(page.data.faqs),
+]);
 
-const lede = typo(
-  'Phase 1 shell. Design tokens, the measurement rail, the schema graph and the NAP source of truth are wired; migrated content lands in Phase 3.',
-);
+const path = PAGES.home;
+const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 ---
 
-<BaseLayout {title} {description} path="/">
-  <section class="l-page l-section">
+<BaseLayout
+  title={page.data.seo.title}
+  description={page.data.seo.description}
+  {path}
+  {schema}
+  noindex={page.data.seo.noindex}
+  canonical={page.data.seo.canonical}
+  image={page.data.seo.image?.src}
+>
+  <section class="l-page l-section" aria-label="Introduction">
     <div class="l-rail">
-      <p class="l-rail__mark u-label u-tabular">00</p>
+      <p class="l-rail__mark u-label u-tabular">{hero.eyebrow}</p>
       <div class="l-rail__body l-stack">
-        <h1>Heavy-duty truck repair in Charlotte, North&nbsp;Carolina</h1>
-        <p>{lede}</p>
+        <h1>{hero.heading}</h1>
+        <p class="hero__lede">{hero.lede}</p>
 
-        {/*
-          The numeric split, visible: the figures in the sentence above are
-          old-style proportional and sit in the line like words. The figures in
-          the column below are lining tabular and align down the column.
-          Same font, two `font-variant-numeric` values.
-        */}
-        <dl class="spec">
-          <div class="spec__row">
-            <dt class="u-label">Phone</dt>
-            <dd class="u-tabular u-nowrap">
-              <a href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a>
-            </dd>
-          </div>
-          <div class="spec__row">
-            <dt class="u-label">Address</dt>
-            <dd>
-              {site.address.street}, {site.address.locality}, {site.address.region}{' '}
-              <span class="u-tabular">{site.address.postalCode}</span>
-            </dd>
-          </div>
-          <div class="spec__row">
-            <dt class="u-label">Hours</dt>
-            <dd class="u-tabular">
-              {site.hours.days}, {site.hours.opens}–{site.hours.closes}
-            </dd>
-          </div>
+        {
+          hero.image && (
+            <img
+              class="hero__image"
+              src={hero.image.src}
+              alt={hero.imageAlt}
+              width={hero.image.width}
+              height={hero.image.height}
+              decoding="async"
+            />
+          )
+        }
+      </div>
+    </div>
+  </section>
+
+  {
+    stats.length > 0 && (
+      <section class="l-page" aria-label="By the numbers">
+        <dl class="stats">
+          {stats.map((stat) => (
+            <div class="stats__cell">
+              <dt class="u-label">{stat.label}</dt>
+              {/* A reading, in the one place the design allows target green. */}
+              <dd class="stats__value u-reading">{stat.value}</dd>
+              {stat.note && <dd class="stats__note">{stat.note}</dd>}
+            </div>
+          ))}
         </dl>
+      </section>
+    )
+  }
+
+  <section class="l-page l-section" aria-label="Overview">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label">Shop</p>
+      <div class="l-rail__body">
+        <Content />
+      </div>
+    </div>
+  </section>
+
+  {
+    services.length > 0 && (
+      <section class="l-page l-section" aria-labelledby="home-services">
+        <div class="l-rail">
+          <p class="l-rail__mark u-label u-tabular">{String(services.length).padStart(2, '0')}</p>
+          <div class="l-rail__body">
+            <h2 id="home-services">{SECTIONS.services.label}</h2>
+            <EntryList
+              numbered={false}
+              items={services.map((entry) => ({
+                href: entryPath('services', entry.id),
+                title: entry.data.navLabel,
+                summary: entry.data.summary,
+              }))}
+            />
+            <p class="more">
+              <a href={SECTIONS.services.index!}>All {SECTIONS.services.label.toLowerCase()}</a>
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    repairs.length > 0 && (
+      <section class="l-page l-section" aria-labelledby="home-repairs">
+        <div class="l-rail">
+          <p class="l-rail__mark u-label u-tabular">{String(repairs.length).padStart(2, '0')}</p>
+          <div class="l-rail__body">
+            <h2 id="home-repairs">{SECTIONS.repairs.label}</h2>
+            <EntryList
+              numbered={false}
+              items={repairs.map((entry) => ({
+                href: entryPath('repairs', entry.id),
+                title: entry.data.navLabel,
+                summary: entry.data.summary,
+              }))}
+            />
+            <p class="more">
+              <a href={SECTIONS.repairs.index!}>All {SECTIONS.repairs.label.toLowerCase()}</a>
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    testimonials.length > 0 && (
+      <section class="l-page l-section" aria-labelledby="home-said">
+        <div class="l-rail">
+          <p class="l-rail__mark u-label">Said</p>
+          <div class="l-rail__body">
+            <h2 id="home-said" class="u-visually-hidden">
+              What customers say
+            </h2>
+            {testimonials.map((entry) => (
+              <figure class="quote">
+                <blockquote>
+                  <p>{entry.data.quote}</p>
+                </blockquote>
+                {/*
+                  Name, then role and company only when they exist. There is no
+                  placeholder to fall back to, which is the point: the live site
+                  printed “Position, Company name” because its template needed
+                  one.
+                */}
+                <figcaption class="quote__by">
+                  <span class="quote__name">{entry.data.name}</span>
+                  {(entry.data.role || entry.data.company) && (
+                    <span class="quote__role">
+                      {[entry.data.role, entry.data.company].filter(Boolean).join(', ')}
+                    </span>
+                  )}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <Faqs items={faqs} />
+
+  <section class="l-page l-section" aria-labelledby="home-where">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label">Where</p>
+      <div class="l-rail__body">
+        <h2 id="home-where">Find the shop</h2>
+        <LocationCard />
       </div>
     </div>
   </section>
 </BaseLayout>
 
 <style>
-  /*
-   * Specs read as a data column: hairline rules, tabular figures, no boxes.
-   */
-  .spec {
-    margin-block-start: var(--s-5);
-    max-width: var(--measure-tight);
+  .hero__lede {
+    font-size: var(--t-lead);
+    color: var(--c-ink-2);
   }
 
-  .spec__row {
+  .hero__image { width: 100%; margin-block-start: var(--s-5); }
+
+  /*
+   * The measurement rail, as figures: lining tabular, aligned down a column,
+   * hairline rules and no boxes.
+   */
+  .stats {
     display: grid;
-    grid-template-columns: 7rem minmax(0, 1fr);
-    gap: var(--s-3);
-    padding-block: var(--s-2);
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0 var(--gutter);
+    margin-block-start: var(--s-5);
+  }
+
+  .stats__cell {
+    padding-block: var(--s-3);
     border-block-start: var(--hairline) solid var(--c-rule);
   }
 
-  .spec__row dt { padding-block-start: 0.2em; }
-  .spec__row dd { margin: 0; }
-
-  @media (width < 32rem) {
-    .spec__row { grid-template-columns: minmax(0, 1fr); gap: var(--s-0); }
+  .stats__value {
+    margin: var(--s-1) 0 0;
+    font-size: var(--t-h2);
+    line-height: var(--lh-tight);
   }
+
+  .stats__note {
+    margin: var(--s-1) 0 0;
+    font-size: var(--t-fine);
+    color: var(--c-ink-3);
+  }
+
+  .more { margin-block-start: var(--s-4); font-size: var(--t-fine); }
+
+  .quote {
+    margin: 0;
+    padding-block: var(--s-4);
+    border-block-start: var(--hairline) solid var(--c-rule);
+    max-width: var(--measure);
+  }
+
+  .quote blockquote p { font-size: var(--t-lead); }
+
+  .quote__by {
+    margin-block-start: var(--s-2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-2);
+    font-size: var(--t-fine);
+  }
+
+  .quote__name { font-weight: 620; }
+  .quote__role { color: var(--c-ink-3); }
 </style>

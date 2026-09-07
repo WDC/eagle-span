@@ -9,8 +9,8 @@
  * who cannot see the colour.
  */
 interface Props {
-  tone?: 'note' | 'caution' | 'safety';
-  title?: string;
+  tone?: 'note' | 'caution' | 'safety' | undefined;
+  title?: string | undefined;
 }
 
 const { tone = 'note', title } = Astro.props;

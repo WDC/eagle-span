@@ -116,6 +116,38 @@ if (!layout.includes('rel="preload"') || !layout.includes('fontFiles.roman')) {
 if (layout.includes('fontFiles.italic')) fail('BaseLayout preloads the italic face — it should not');
 if (!layout.includes('crossorigin')) fail('font preload is missing crossorigin — it will download twice');
 
+/*
+ * The open-graph fonts. Static instances of the same upstream, read by satori
+ * at build time — see src/lib/og.ts — and committed under data/ because nothing
+ * serves them.
+ *
+ * Unlike the woff2 subsets these ARE byte-reproducible (`recalcTimestamp=False`
+ * in build-fonts.py), so a digest mismatch here is a real change rather than a
+ * rebuild on a different fontTools. They are also checked for NOT being under
+ * public/: shipping them would put 58 KB of duplicate letterforms into the font
+ * budget for bytes no browser ever needs.
+ */
+const og = manifest.openGraph;
+if (!og) {
+  fail('data/fonts.json has no openGraph block — run `bun run fonts:build:og`');
+} else {
+  for (const face of og.faces) {
+    const path = resolve(root, og.dir, face.file);
+    if (!existsSync(path)) {
+      fail(`${face.file} is missing from ${og.dir} — run \`bun run fonts:build:og\``);
+      continue;
+    }
+    const bytes = readFileSync(path);
+    const digest = createHash('sha256').update(bytes).digest('hex');
+    if (digest !== face.sha256) fail(`${face.file}: sha256 ${digest} != manifest ${face.sha256}`);
+    if (bytes.length !== face.bytes) fail(`${face.file}: ${bytes.length} bytes != manifest ${face.bytes}`);
+
+    if (existsSync(resolve(root, 'public/fonts', face.file))) {
+      fail(`${face.file} is in public/fonts — the OG fonts are a build input and must not be served`);
+    }
+  }
+}
+
 const total = manifest.faces.reduce((n, f) => n + f.bytes, 0);
 /* lighthouse-budget.json allows 160 KB of font. Both faces load only on a page
  * with italic text, so that is the number to hold. */
@@ -125,6 +157,7 @@ if (total / 1024 > BUDGET_KB) fail(`fonts total ${(total / 1024).toFixed(1)} KB,
 console.log(
   `\nfonts: ${manifest.faces.length} faces, ${manifest.fallbacks.length} metric-adjusted fallbacks, ` +
   `${(roman.bytes / 1024).toFixed(1)} KB preloaded / ${(total / 1024).toFixed(1)} KB worst case ` +
-  `(italic ${(italic.bytes / 1024).toFixed(1)} KB on demand), ${failures} problem${failures === 1 ? '' : 's'}.`,
+  `(italic ${(italic.bytes / 1024).toFixed(1)} KB on demand), ` +
+  `${og ? og.faces.length : 0} unserved OG faces, ${failures} problem${failures === 1 ? '' : 's'}.`,
 );
 if (failures) process.exit(1);

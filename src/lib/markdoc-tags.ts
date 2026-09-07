@@ -177,3 +177,25 @@ export const TAGS = [
 ] as const satisfies readonly TagDefinition[];
 
 export type TagName = (typeof TAGS)[number]['name'];
+
+/**
+ * Markdoc *nodes* that render through a component of ours rather than through a
+ * bare HTML tag. Same drift problem as the tags above — a component path is a
+ * string until a page renders that node — so the list is here and
+ * `scripts/verify-content.mjs` checks that each file exists.
+ *
+ * `document` is the settle on the question Phase 1 left open.
+ * `@astrojs/markdoc` renders the root of every entry as `<article>`, which is
+ * right for an article and wrong for the other three routed collections: a
+ * service page's body is not a self-contained, syndicatable composition, and
+ * on `/articles/{slug}` it produced an `<article>` nested inside the
+ * `<article>` the template wants to own. The content file cannot know which of
+ * those it is; the template always does. So the body renders as prose and the
+ * landmark moves to the template.
+ */
+export const NODE_COMPONENTS = {
+  document: './src/components/markdoc/Prose.astro',
+  link: './src/components/markdoc/Link.astro',
+} as const;
+
+export type NodeComponentName = keyof typeof NODE_COMPONENTS;

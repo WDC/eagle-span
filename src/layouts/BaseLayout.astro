@@ -1,28 +1,105 @@
 ---
 import '~/styles/global.css';
+import SiteFooter from '~/components/SiteFooter.astro';
+import SiteHeader from '~/components/SiteHeader.astro';
 import { fontFiles } from '~/lib/fonts.generated.ts';
+import { entryPath, ogPath } from '~/lib/routes.ts';
 import { site } from '~/site.config.ts';
-import { breadcrumbNode, businessNode, graph, webPageNode, websiteNode, type Crumb } from '~/lib/schema.ts';
+import {
+  breadcrumbNode,
+  businessNode,
+  graph,
+  webPageNode,
+  websiteNode,
+  type Crumb,
+  type Offering,
+  type WebPageType,
+} from '~/lib/schema.ts';
+import { getSingleton, listOfferings } from '~/lib/content.ts';
 
 interface Props {
+  /** `seo.title`, without the brand. The suffix is added here, once. */
   title: string;
   description: string;
   /** Path without origin, e.g. "/repairs/wheel-alignment". */
   path: string;
-  crumbs?: readonly Crumb[];
+  crumbs?: readonly Crumb[] | undefined;
   /** Page-specific nodes (Service, FAQPage, Article) merged into the graph. */
-  schema?: readonly object[];
+  schema?: readonly object[] | undefined;
+  /** Narrows the WebPage node where a subtype is true. */
+  pageType?: WebPageType | undefined;
+  /** `og:type`. Article pages say so; everything else is a website. */
+  ogType?: 'website' | 'article' | undefined;
+  /** From `seo.noindex`. Adds the robots meta and keeps the page out of the sitemap. */
+  noindex?: boolean | undefined;
+  /** From `seo.canonical` — Phase 3's archive consolidation points a folded page at its survivor. */
+  canonical?: string | undefined;
+  /**
+   * The OG card. `undefined` takes the one generated for this path, a string
+   * overrides it with `seo.image`, and `null` says this page has none — which
+   * only the 404 is, because it is the one page in the build that
+   * `listSitePages()` does not know about and nobody shares.
+   */
+  image?: string | null | undefined;
+  /** Alt text for the OG image, read by the platforms that support it. */
+  imageAlt?: string | undefined;
 }
 
-const { title, description, path, crumbs = [], schema = [] } = Astro.props;
+const {
+  title,
+  description,
+  path,
+  crumbs = [],
+  schema = [],
+  pageType = 'WebPage',
+  ogType = 'website',
+  noindex = false,
+  canonical: canonicalOverride,
+  image,
+  imageAlt,
+} = Astro.props;
 
-const canonical = `${site.url}${path === '/' ? '/' : path}`;
+/*
+ * The brand suffix is appended here rather than written into `seo.title`, which
+ * is why the schema bounds that field at 70 characters "without the brand
+ * suffix": one rule, one place, and no entry can spell the business name a
+ * second way. The homepage is not special-cased — the live one already carried
+ * the suffix.
+ */
+const documentTitle = `${title} | ${site.shortName}`;
+
+const url = `${site.url}${path === '/' ? '/' : path}`;
+const canonical = canonicalOverride ?? url;
+
+/*
+ * One OG image per page, rendered at build by src/pages/og/[...slug].png.ts.
+ * `seo.image` overrides it for the entries that eventually carry their own art.
+ * `verify:jsonld` fails if this names a file the build did not produce.
+ */
+const ogImage = image === null ? null : `${site.url}${image ?? ogPath(path)}`;
+
+/*
+ * The service catalogue and the social profiles are site-wide facts, so the
+ * layout reads them rather than making every template pass them down. Astro's
+ * content store is in memory by the time a page renders, so this is not fifteen
+ * reads of the disk.
+ */
+const [services, repairs, settings] = await Promise.all([
+  listOfferings('services'),
+  listOfferings('repairs'),
+  getSingleton('settings'),
+]);
+
+const offerings: Offering[] = [
+  ...services.map((entry) => ({ path: entryPath('services', entry.id), name: entry.data.navLabel })),
+  ...repairs.map((entry) => ({ path: entryPath('repairs', entry.id), name: entry.data.navLabel })),
+];
 
 const nodes = [
-  businessNode(),
+  businessNode({ offerings, sameAs: settings.data.social.map((link) => link.url) }),
   websiteNode(),
-  webPageNode(path, title, description),
-  ...(crumbs.length ? [breadcrumbNode(crumbs)] : []),
+  webPageNode(path, documentTitle, description, pageType),
+  ...(crumbs.length > 1 ? [breadcrumbNode(crumbs)] : []),
   ...schema,
 ];
 ---
@@ -33,17 +110,33 @@ const nodes = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>{title}</title>
+    <title>{documentTitle}</title>
     <meta name="description" content={description} />
     {/* The live Webflow site emits no canonical tag on any of its 30 pages. */}
     <link rel="canonical" href={canonical} />
+    {/*
+      `follow` rather than a bare `noindex`: a page held back from the index is
+      still a page whose outbound links should pass. `noindex,nofollow` would
+      strand everything it links to.
+    */}
+    {noindex && <meta name="robots" content="noindex, follow" />}
 
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content={site.name} />
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={documentTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:url" content={url} />
+    {
+      ogImage && (
+        <>
+          <meta property="og:image" content={ogImage} />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta property="og:image:alt" content={imageAlt ?? title} />
+          <meta name="twitter:card" content="summary_large_image" />
+        </>
+      )
+    }
 
     {/*
       Roman only. The italic face is declared in fonts.css and downloads by
@@ -54,17 +147,17 @@ const nodes = [
     */}
     <link rel="preload" href={fontFiles.roman} as="font" type="font/woff2" crossorigin />
 
-    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="sitemap" href="/sitemap.xml" />
 
     <script type="application/ld+json" is:inline set:html={JSON.stringify(graph(nodes))} />
   </head>
 
   <body>
     <a class="u-skip-link" href="#main">Skip to content</a>
-    <slot name="header" />
+    <SiteHeader />
     <main id="main">
       <slot />
     </main>
-    <slot name="footer" />
+    <SiteFooter />
   </body>
 </html>

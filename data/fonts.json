@@ -140,5 +140,23 @@
       "descentOverride": 0.34427526208681236,
       "lineGapOverride": 0.0
     }
-  ]
+  ],
+  "openGraph": {
+    "_note": "Build input for the OG renderer. Never served \u2014 see OG_FONTS in build-fonts.py.",
+    "dir": "data/og-fonts",
+    "faces": [
+      {
+        "file": "eagle-span-og-regular.ttf",
+        "weight": 400,
+        "bytes": 29316,
+        "sha256": "b5df1b49364dd04813145399c25882995362e65c835db2e3978b322e0d31c877"
+      },
+      {
+        "file": "eagle-span-og-semibold.ttf",
+        "weight": 620,
+        "bytes": 29284,
+        "sha256": "55e161519af7588ab43a43069869eb5b1b8087163c251004564149efd7c83d85"
+      }
+    ]
+  }
 }

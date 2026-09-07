@@ -188,3 +188,58 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: fr
 
 .l-stack > * + * { margin-block-start: var(--s-3); }
 .l-section { padding-block: var(--s-7); }
+
+/* ---- Prose ------------------------------------------------------------ */
+
+/*
+ * The rendered body of a Markdoc entry. `src/components/markdoc/Prose.astro`
+ * is the `document` node, which Astro renders as `<article>` by default —
+ * see NODE_COMPONENTS in src/lib/markdoc-tags.ts for why that moved to the
+ * template and this took its place.
+ *
+ * Rhythm rather than boxes: a heading gets more space above it than a
+ * paragraph does, which is the whole of what a prose stylesheet owes the
+ * reader. The tags a body can use bring their own rules — a callout has a
+ * hairline axis, a spec table has a column — so nothing here styles them.
+ */
+.prose > * + * { margin-block-start: var(--s-3); }
+
+.prose > * + :is(h2, h3, h4) { margin-block-start: var(--s-6); }
+
+.prose > :is(ul, ol) {
+  padding-inline-start: var(--s-4);
+  max-width: var(--measure);
+}
+
+.prose li + li { margin-block-start: var(--s-1); }
+
+.prose > blockquote {
+  padding-inline-start: var(--s-4);
+  border-inline-start: var(--hairline) solid var(--c-rule-strong);
+  color: var(--c-ink-2);
+  max-width: var(--measure);
+}
+
+.prose > hr {
+  border: 0;
+  border-block-start: var(--hairline) solid var(--c-rule);
+  margin-block: var(--s-6);
+}
+
+.prose :is(code, kbd, samp) {
+  font-family: var(--f-mono);
+  font-size: 0.9em;
+}
+
+.prose > :is(table, .table-wrap) { max-width: 100%; }
+
+.prose table {
+  border-collapse: collapse;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.prose :is(th, td) {
+  text-align: start;
+  padding: var(--s-2) var(--s-3) var(--s-2) 0;
+  border-block-start: var(--hairline) solid var(--c-rule);
+}

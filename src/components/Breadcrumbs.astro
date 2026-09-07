@@ -1,0 +1,67 @@
+---
+import type { Crumb } from '~/lib/schema.ts';
+
+/*
+ * The visible half of the BreadcrumbList.
+ *
+ * Google's structured-data policy is explicit that a BreadcrumbList must
+ * describe a trail the reader can actually see, and this component and
+ * `breadcrumbNode()` are handed the same array by the template so the two
+ * cannot say different things. `verify:jsonld` checks the rendered text
+ * contains every name the graph claims.
+ *
+ * The last crumb is the current page: text, not a link, and marked
+ * `aria-current` rather than being distinguished only by not being underlined.
+ */
+interface Props {
+  crumbs: readonly Crumb[];
+}
+
+const { crumbs } = Astro.props;
+---
+
+{
+  crumbs.length > 1 && (
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <ol class="crumbs__list">
+        {crumbs.map((crumb, i) => (
+          <li class="crumbs__item">
+            {i === crumbs.length - 1 ? (
+              <span aria-current="page">{crumb.name}</span>
+            ) : (
+              <a href={crumb.path}>{crumb.name}</a>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}
+
+<style>
+  .crumbs {
+    font-size: var(--t-fine);
+    color: var(--c-ink-3);
+  }
+
+  .crumbs__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-2);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /*
+   * The separator is generated content so it is not in the accessible name and
+   * not in the text `verify:jsonld` matches crumb names against.
+   */
+  .crumbs__item + .crumbs__item::before {
+    content: '/';
+    margin-inline-end: var(--s-2);
+    color: var(--c-ink-4);
+  }
+
+  .crumbs__item [aria-current='page'] { color: var(--c-ink-2); }
+</style>

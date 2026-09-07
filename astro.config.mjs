@@ -1,7 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import markdoc from '@astrojs/markdoc';
-import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 
 import keystaticDev from './src/integrations/keystatic-dev.ts';
@@ -29,12 +28,11 @@ export default defineConfig({
     markdoc(),
 
     /*
-     * Phase 4 replaces this with real `lastmod` values read from the content
-     * collections — build time is not a modification date. Until then the
-     * integration exists so /sitemap-index.xml is a real URL rather than a
-     * dangling reference in the head.
+     * No sitemap integration. `src/pages/sitemap.xml.ts` writes it instead,
+     * because the integration's `lastmod` is the build time — it derives its
+     * URLs by scanning routes and has no way to ask the content when it
+     * changed. See the header of that file.
      */
-    sitemap(),
 
     /*
      * Adds Keystatic only under `astro dev`, so /keystatic and its write

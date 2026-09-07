@@ -1,0 +1,85 @@
+---
+import { render } from 'astro:content';
+
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import { getSingleton } from '~/lib/content.ts';
+import { PAGES, pageCrumbs } from '~/lib/routes.ts';
+
+/*
+ * `/company/careers`.
+ *
+ * No `JobPosting` nodes. The type's required properties are `datePosted`,
+ * `validThrough`, `hiringOrganization` and a location, and the openings in the
+ * content model carry a role, an employment type and a summary. Emitting a
+ * JobPosting without a posting date puts a listing into Google for Jobs that
+ * can never expire and cannot be dated — worse than not being there. If the
+ * client wants indexed listings the schema grows three fields first, and the
+ * node follows from them rather than from a guess.
+ */
+const page = await getSingleton('careers');
+const { Content } = await render(page);
+
+const path = PAGES.careers;
+const crumbs = pageCrumbs('Careers', path);
+
+const EMPLOYMENT_LABEL = {
+  'full-time': 'Full time',
+  'part-time': 'Part time',
+  contract: 'Contract',
+} as const;
+---
+
+<BaseLayout
+  title={page.data.seo.title}
+  description={page.data.seo.description}
+  {path}
+  {crumbs}
+  noindex={page.data.seo.noindex}
+  canonical={page.data.seo.canonical}
+  image={page.data.seo.image?.src}
+>
+  <PageHeader
+    mark={String(page.data.openings.length).padStart(2, '0')}
+    title={page.data.title}
+    lede={page.data.lede}
+    {crumbs}
+  />
+
+  {
+    page.data.openings.length > 0 && (
+      <section class="l-page" aria-labelledby="openings-heading">
+        <h2 id="openings-heading" class="u-visually-hidden">
+          Current openings
+        </h2>
+        <ul class="openings">
+          {page.data.openings.map((opening) => (
+            <li class="l-rail openings__row">
+              <p class="l-rail__mark u-label">{EMPLOYMENT_LABEL[opening.employmentType]}</p>
+              <div class="l-rail__body">
+                <h3 class="openings__role">{opening.role}</h3>
+                <p class="openings__summary">{opening.summary}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <div class="l-page l-section">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label">Note</p>
+      <div class="l-rail__body">
+        <Content />
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .openings { list-style: none; padding: 0; margin: 0; }
+  .openings__row { padding-block: var(--s-4); }
+  .openings__role { font-size: var(--t-h3); }
+  .openings__summary { margin-block-start: var(--s-2); color: var(--c-ink-2); }
+</style>

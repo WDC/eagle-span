@@ -256,6 +256,27 @@ const about = defineCollection({
   schema: ({ image }) => pageBase(image),
 });
 
+/*
+ * The three index pages, which are `pageBase` and nothing more: the list they
+ * introduce is the collection, not a field. Adding a `featured` array here
+ * would be a second place to decide the order of a page that already sorts on
+ * `order`.
+ */
+const servicesIndex = defineCollection({
+  loader: from('servicesIndex'),
+  schema: ({ image }) => pageBase(image),
+});
+
+const repairsIndex = defineCollection({
+  loader: from('repairsIndex'),
+  schema: ({ image }) => pageBase(image),
+});
+
+const articlesIndex = defineCollection({
+  loader: from('articlesIndex'),
+  schema: ({ image }) => pageBase(image),
+});
+
 const contact = defineCollection({
   loader: from('contact'),
   schema: ({ image }) =>
@@ -327,6 +348,9 @@ export const collections = {
   accounts,
   home,
   about,
+  servicesIndex,
+  repairsIndex,
+  articlesIndex,
   contact,
   careers,
   fleet,

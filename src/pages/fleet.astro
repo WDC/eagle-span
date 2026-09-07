@@ -1,0 +1,103 @@
+---
+import { render } from 'astro:content';
+
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Faqs from '~/components/Faqs.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import { getEntries } from 'astro:content';
+import { getSingleton, resolveFaqs } from '~/lib/content.ts';
+import { PAGES, pageCrumbs } from '~/lib/routes.ts';
+import { faqPageNode } from '~/lib/schema.ts';
+
+/*
+ * `/fleet` — the one new URL in the whole migration, and a stub by design.
+ *
+ * It is not a second `/services/fleet-services`. That page sells the work; this
+ * one is the programme around it — which billing networks the shop honours,
+ * how scheduling works for a yard of trucks. The two will read as duplicates
+ * until Phase 3 gives this one its own copy, and until they don't, the honest
+ * signal is `accounts: []`: which networks a shop bills through is a fact about
+ * the business, not a fixture to invent.
+ */
+const page = await getSingleton('fleet');
+const { Content } = await render(page);
+
+const path = PAGES.fleet;
+const crumbs = pageCrumbs('Fleet', path);
+
+const accounts = page.data.accounts.length ? await getEntries(page.data.accounts) : [];
+const faqs = await resolveFaqs(page.data.faqs);
+
+const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
+---
+
+<BaseLayout
+  title={page.data.seo.title}
+  description={page.data.seo.description}
+  {path}
+  {crumbs}
+  {schema}
+  noindex={page.data.seo.noindex}
+  canonical={page.data.seo.canonical}
+  image={page.data.seo.image?.src}
+>
+  <PageHeader mark="Fleet" title={page.data.title} lede={page.data.lede} {crumbs} />
+
+  <div class="l-page l-section">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label">Programme</p>
+      <div class="l-rail__body">
+        <Content />
+      </div>
+    </div>
+  </div>
+
+  {
+    accounts.length > 0 && (
+      <section class="l-page l-section" aria-labelledby="accounts-heading">
+        <div class="l-rail">
+          <p class="l-rail__mark u-label">Billing</p>
+          <div class="l-rail__body">
+            <h2 id="accounts-heading">National accounts</h2>
+            <ul class="accounts">
+              {accounts.map((account) => (
+                <li class="accounts__row">
+                  <p class="accounts__name">
+                    {account.data.url ? (
+                      <a href={account.data.url} target="_blank" rel="noopener noreferrer">
+                        {account.data.name}
+                        <span class="u-visually-hidden"> (opens in a new tab)</span>
+                      </a>
+                    ) : (
+                      account.data.name
+                    )}
+                  </p>
+                  {account.data.note && <p class="accounts__note">{account.data.note}</p>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <Faqs items={faqs} heading="Fleet questions" />
+</BaseLayout>
+
+<style>
+  .accounts {
+    list-style: none;
+    padding: 0;
+    margin-block-start: var(--s-4);
+    max-width: var(--measure-tight);
+  }
+
+  .accounts__row {
+    padding-block: var(--s-2);
+    border-block-start: var(--hairline) solid var(--c-rule);
+  }
+
+  .accounts__name { font-weight: 620; }
+  .accounts__note { color: var(--c-ink-3); font-size: var(--t-fine); }
+</style>

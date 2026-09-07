@@ -1,0 +1,40 @@
+---
+import { render } from 'astro:content';
+
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import { getSingleton } from '~/lib/content.ts';
+import { PAGES, pageCrumbs } from '~/lib/routes.ts';
+
+/*
+ * `/company/about`. `data/redirects.csv` also sends the bare `/company` here,
+ * which the live site 404s.
+ */
+const page = await getSingleton('about');
+const { Content } = await render(page);
+
+const path = PAGES.about;
+const crumbs = pageCrumbs('About', path);
+---
+
+<BaseLayout
+  title={page.data.seo.title}
+  description={page.data.seo.description}
+  {path}
+  {crumbs}
+  pageType="AboutPage"
+  noindex={page.data.seo.noindex}
+  canonical={page.data.seo.canonical}
+  image={page.data.seo.image?.src}
+>
+  <PageHeader mark="About" title={page.data.title} lede={page.data.lede} {crumbs} />
+
+  <div class="l-page l-section">
+    <div class="l-rail">
+      <p class="l-rail__mark u-label">Shop</p>
+      <div class="l-rail__body">
+        <Content />
+      </div>
+    </div>
+  </div>
+</BaseLayout>
