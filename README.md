@@ -27,7 +27,7 @@ bun run dev
 | `bun run redirects:build` | Regenerates `vercel.json` from `data/redirects.csv` |
 | `bun run build` | Astro build |
 | `bun run verify:jsonld` | JSON-LD parses, NAP matches `site.config`, canonical present |
-| `bun run verify:redirects <origin>` | One hop, right destination, destination 200 |
+| `bun run verify:redirects <origin>` | One hop, right destination, and a live destination for pages this build produces |
 
 `verify:redirects`, Lighthouse and axe need a deployed origin, so CI runs them
 against the preview URL once `PREVIEW_URL` is set as a repository variable.
@@ -71,6 +71,13 @@ Each of the three gates takes it differently, because the tools differ:
   environment and sends it as an `x-vercel-protection-bypass` header. It
   preflights the origin first, so a missing or stale token reports itself as a
   protection problem rather than as six broken redirects.
+
+  It needs `dist/` — run `bun run build` first. The redirect hop is always
+  enforced, but a destination this build does not produce yet reports as
+  *pending* rather than failing: until Phase 3 migrates the content, most
+  destinations are pages the site has not built, and a gate that sits red for
+  weeks is a gate everyone learns to ignore. Each pending row becomes a real
+  check by itself as its page lands — there is no flag to remember.
 * **Lighthouse** takes no header input on the action, so CI writes a
   `lighthouserc.json` at run time carrying `collect.settings.extraHeaders` and
   passes it as `configPath`. A header, not a query parameter — the results
