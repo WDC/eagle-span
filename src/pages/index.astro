@@ -1,17 +1,32 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import { site } from '~/site.config.ts';
+import { typo } from '~/lib/typography.ts';
 
 /*
  * Skeleton homepage. Phase 1 exists to get every CI gate green on an empty
  * shell before any page work starts, so this deliberately carries no migrated
  * copy — it proves the layout, tokens, schema graph and NAP wiring only.
  * Real content lands in Phase 3.
+ *
+ * Phase 2 adds the type pipeline to it: the copy below runs through `typo()`,
+ * which is what markdown gets from the remark plugin. The strings in this file
+ * are not markdown, so they would otherwise be the one place on the site where
+ * a straight quote survives to the page.
+ *
+ * The business name comes from site.config rather than being written out, so
+ * the spelling cannot drift back apart the way it did on the Webflow site.
  */
 
-const title = 'Heavy-Duty Truck Repair Shop in Charlotte, NC | EagleSpan';
-const description =
-  'EagleSpan Corporation provides heavy-duty truck and trailer repair for owner-operators and commercial fleets in Charlotte, North Carolina.';
+const title = `Heavy-Duty Truck Repair Shop in Charlotte, NC | ${site.shortName}`;
+const description = typo(
+  `${site.name} provides heavy-duty truck and trailer repair for owner-operators and commercial fleets in Charlotte, North Carolina.`,
+  { widont: false },
+);
+
+const lede = typo(
+  'Phase 1 shell. Design tokens, the measurement rail, the schema graph and the NAP source of truth are wired; migrated content lands in Phase 3.',
+);
 ---
 
 <BaseLayout {title} {description} path="/">
@@ -20,15 +35,18 @@ const description =
       <p class="l-rail__mark u-label u-tabular">00</p>
       <div class="l-rail__body l-stack">
         <h1>Heavy-duty truck repair in Charlotte, North&nbsp;Carolina</h1>
-        <p>
-          Phase 1 shell. Design tokens, the measurement rail, the schema graph and the NAP source of
-          truth are wired; migrated content lands in Phase&nbsp;3.
-        </p>
+        <p>{lede}</p>
 
+        {/*
+          The numeric split, visible: the figures in the sentence above are
+          old-style proportional and sit in the line like words. The figures in
+          the column below are lining tabular and align down the column.
+          Same font, two `font-variant-numeric` values.
+        */}
         <dl class="spec">
           <div class="spec__row">
             <dt class="u-label">Phone</dt>
-            <dd class="u-tabular">
+            <dd class="u-tabular u-nowrap">
               <a href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a>
             </dd>
           </div>

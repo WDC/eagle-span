@@ -1,5 +1,5 @@
 /*
- * EagleSpan design tokens — "measurement, not diamond plate."
+ * Eagle Span design tokens — "measurement, not diamond plate."
  *
  * The claim is precision on vehicles nobody else in Charlotte will align, so
  * the visual language is technical measurement applied to heavy mass: hairline
@@ -13,10 +13,14 @@
 
 :root {
   /* ---- Ink and ground ------------------------------------------------- */
-  --c-ink: #0a0a0b;
-  --c-ink-2: #26272b;
-  --c-ink-3: #55575e;
-  --c-ink-4: #8b8d95;
+  /*
+   * Contrast against --c-ground, then --c-ground-2. Anything under 4.5 is not
+   * a text colour: ink-4 is for rules, dividers and disabled marks only.
+   */
+  --c-ink: #0a0a0b;      /* 19.79 : 17.97 */
+  --c-ink-2: #26272b;    /* 14.92 : 13.55 */
+  --c-ink-3: #55575e;    /*  7.21 :  6.55 */
+  --c-ink-4: #8b8d95;    /*  3.31 :  3.01 — NOT text */
   --c-ground: #ffffff;
   --c-ground-2: #f4f4f2;
   --c-ground-3: #e7e7e4;
@@ -26,20 +30,45 @@
   --c-rule-strong: #a8a8a3;
 
   /* ---- Brand ---------------------------------------------------------- */
-  --c-blue: #0b66e4;
-  --c-blue-deep: #073f8f;
-  --c-red: #d80a20;
+  --c-blue: #0b66e4;      /*  5.20 :  4.73 */
+  --c-blue-deep: #073f8f; /*  9.92 :  9.01 */
+  --c-red: #d80a20;       /*  5.27 :  4.79 */
 
   /*
    * Alignment-target green. RESERVED: readings, in-spec indicators and active
    * state only. If this lands on a card border it has been misused.
+   *
+   * Two values, because the sampled green is 3.37:1 on white — fine for a mark,
+   * a rule or a 3px indicator, and a WCAG AA failure the moment it is text.
+   * `--c-target` is the mark; `--c-target-ink` is the same green darkened to
+   * 5.43:1 on --c-ground and 4.93:1 on --c-ground-2, and is the only one
+   * allowed in a `color:`. verify-tokens.mjs enforces the split.
    */
   --c-target: #12a150;
+  --c-target-ink: #0c7a3c;
 
   /* ---- Type ----------------------------------------------------------- */
-  --f-sans: 'EagleSpan Sans', var(--f-sans-fallback);
+  /*
+   * Source Sans 3, subset and self-hosted as 'Eagle Span Sans'. Chosen for its
+   * figures: the design needs old-style proportional in prose and lining
+   * tabular in specs, and that needs a family that actually ships `onum` and
+   * `pnum`. `font-variant-numeric` fails silently when the feature is absent,
+   * so a face without them looks like it works and never does.
+   *
+   * The two Fallback families carry no bytes — they re-describe Arial and
+   * Roboto with our metrics so the swap moves no text. Order matters and
+   * verify-fonts.mjs enforces it: webfont, adjusted fallbacks, then the
+   * unadjusted generic stack as the last resort.
+   */
+  --f-sans: 'Eagle Span Sans', 'Eagle Span Sans Fallback', 'Eagle Span Sans Fallback Roboto', var(--f-sans-fallback);
   --f-sans-fallback: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-  --f-mono: 'EagleSpan Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+
+  /*
+   * No custom mono ships. Readings get their alignment from the sans, whose
+   * default figures are lining and tabular; a third font file for a family the
+   * stylesheet calls twice would not pay for itself against the 160 KB budget.
+   */
+  --f-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
 
   /*
    * Fifth-based scale, fluid between 24rem and 90rem viewports.
