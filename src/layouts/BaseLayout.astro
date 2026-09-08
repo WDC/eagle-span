@@ -149,7 +149,30 @@ const nodes = [
     */}
     <link rel="preload" href={fontFiles.roman} as="font" type="font/woff2" crossorigin />
 
+    {/*
+      The icons. Both are drawn by `src/lib/icon.ts` and served by routes, so
+      the tab icon and the home-screen icon cannot come apart — and neither can
+      these two lines and the files, because `verify:metadata` checks that every
+      `rel="icon"` here names something the build produced.
+
+      An SVG and one PNG is the whole set. `/favicon.ico` is not here: a browser
+      only falls back to that path when no `rel="icon"` is offered, and the ones
+      that cannot read an SVG icon cannot read this site’s nested CSS either.
+    */}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {/* The mark’s ground, so a mobile browser’s chrome matches the icon rather
+        than guessing from the page. */}
+    <meta name="theme-color" content="#0a0a0b" />
+
     <link rel="sitemap" href="/sitemap.xml" />
+    {/*
+      `/llms.txt` — the site index written for assistants, generated from the
+      same page inventory as the sitemap. `rel="alternate"` with a markdown type
+      is how the proposal suggests announcing it; nothing is obliged to follow
+      it, and the well-known path is what actually gets read.
+    */}
+    <link rel="alternate" type="text/markdown" href="/llms.txt" title="llms.txt" />
 
     {/*
       Cross-document view transitions, and the whole of what Phase 2 spends on
