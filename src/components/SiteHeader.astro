@@ -410,6 +410,49 @@ const sectionCurrent = (item: (typeof nav)[number]) =>
     transform: none;
   }
 
+  /*
+   * The panel is flush with the masthead's own bottom edge, not with the
+   * link: the link sits mid-height in a bar tall enough for the logo, so a
+   * cursor travelling straight down from "Repairs" crosses real dead space
+   * — neither the link's box nor the panel's — before it reaches the grid.
+   * `:hover` reads that instant as "left the item", `pointer-events` flips to
+   * `none` right under the cursor, and the panel is gone before it arrives.
+   *
+   * `pointer-events` cannot be delayed to paper over that — it isn't an
+   * animatable property, so a `transition` on it is a no-op in every engine.
+   * `visibility` can be delayed, but swapping it in here would be trading one
+   * bug for a worse one: it drops a descendant out of the tab sequence, which
+   * is the exact failure the comment above the base rule exists to avoid.
+   *
+   * So the gap gets closed geometrically instead, by a real element rather
+   * than a timing trick: `.nav__top`, the trigger itself, gets a permanently
+   * hoverable extension the height of the gap. It is sized to the trigger's
+   * own column, not the page — a full-width bridge was tried first, and every
+   * panelled item's bridge would sit on the identical rectangle (all panels
+   * anchor to the same bar), so whichever item is last in the DOM always won
+   * the hit-test and hovering "Repairs" opened "Company" instead. Scoped to
+   * one link's own width, adjacent items' bridges never touch, and a cursor
+   * moving out of "Repairs" stays over a descendant of its `.nav__item` for
+   * the entire crossing — by the time it reaches the panel's own full-width
+   * box, that box is already open and the bridge has done its job. It is
+   * widened by half the bar's own item gap on each side, which a straight or
+   * near-straight descent never needs and a shallow diagonal sometimes does;
+   * half the gap is the most either neighbour can safely claim without their
+   * bridges meeting. A sharp diagonal aimed at a far card can still outrun a
+   * bridge this size — that needs the cursor's actual trajectory, which is a
+   * `pointer-events` problem no static CSS shape solves without script.
+   */
+  .nav__item--panelled > .nav__top { position: relative; }
+
+  .nav__item--panelled > .nav__top::after {
+    content: '';
+    position: absolute;
+    inset-inline: calc(-1 * var(--s-4) / 2);
+    inset-block-start: 100%;
+    block-size: var(--s-5);
+    pointer-events: auto;
+  }
+
   .nav__panel-inner {
     display: grid;
     grid-template-columns: minmax(0, 15rem) minmax(0, 3fr);
