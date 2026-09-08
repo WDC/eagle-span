@@ -109,6 +109,22 @@ export async function listSitePages(): Promise<SitePage[]> {
     singleton(contact, PAGES.contact, 'Contact'),
     singleton(fleet, PAGES.fleet, 'Fleet'),
 
+    /*
+     * The form's landing page. It has no entry — it is a receipt rather than
+     * content, and there is nothing on it for an editor to write — so it is
+     * declared here rather than derived, and `noindex` keeps it out of the
+     * sitemap. It is in this list at all so it gets an OG card: it is a URL a
+     * reader can end up on and therefore one somebody can paste.
+     */
+    {
+      path: '/contact/thanks',
+      title: 'Message received',
+      eyebrow: 'Contact',
+      description: 'Your message is with the shop. We answer during shop hours.',
+      noindex: true,
+      source: 'src/pages/contact/thanks.astro',
+    },
+
     ...services.map((entry) => fromEntry(entry, entryPath('services', entry.id), SECTIONS.services.label)),
     ...repairs.map((entry) => fromEntry(entry, entryPath('repairs', entry.id), SECTIONS.repairs.label)),
     ...articles.map((entry) =>

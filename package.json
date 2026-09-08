@@ -26,7 +26,8 @@
     "verify:jsonld": "node scripts/verify-jsonld.mjs",
     "verify:sitemap": "node scripts/verify-sitemap.mjs",
     "verify:motion": "node scripts/verify-motion.mjs",
-    "check": "bun run typecheck && bun run lint && bun run lint:typography && bun run test && bun run verify:fonts && bun run verify:tokens && bun run verify:content && bun run build && bun run verify:static-build && bun run verify:jsonld && bun run verify:sitemap && bun run verify:motion"
+    "verify:forms": "node scripts/verify-forms.mjs",
+    "check": "bun run typecheck && bun run lint && bun run lint:typography && bun run test && bun run verify:fonts && bun run verify:tokens && bun run verify:content && bun run build && bun run verify:static-build && bun run verify:jsonld && bun run verify:sitemap && bun run verify:motion && bun run verify:forms"
   },
   "dependencies": {
     "@astrojs/markdoc": "^0.15.11",

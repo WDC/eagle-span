@@ -46,7 +46,11 @@ const UNIT_ALTERNATION = UNITS.join('|');
  * linted; only the tag itself is skipped.
  */
 const isCode = (l) =>
-  /^\s*(import|export)\b/.test(l) || /[\w-]+=("|')/.test(l) || /\{%|%\}/.test(l);
+  /^\s*(import|export)\b/.test(l) ||
+  /[\w-]+=("|')/.test(l) ||
+  /\{%|%\}/.test(l) ||
+  // An Astro attribute taking an expression: `class:list={...}`, `href={...}`.
+  /[\w-]+(:[\w-]+)?=\{/.test(l);
 
 const RULES = [
   {
@@ -175,8 +179,35 @@ export function lintLine(line) {
   return found;
 }
 
+/**
+ * Blanks out `<style>` and `<script>` blocks, keeping the line count.
+ *
+ * Both are code in the same way the frontmatter fence is, and nothing in either
+ * is read by anybody: a BEM modifier (`.c-btn--primary`) is not an em dash
+ * waiting to happen, and a string in a script is not copy. Without this the
+ * gate reports a class name as a typography defect, which is the kind of false
+ * positive that gets a gate switched off.
+ *
+ * Done over the whole file rather than as a line-by-line state flag, because a
+ * flag cannot see the difference between `<script src="..." />` and a block
+ * that opens here and closes twenty lines down. Under a flag, a self-closing
+ * tag turns the rest of the file into "script" and every real defect after it
+ * goes unreported — a gate that silently stops checking, which is worse than
+ * one that is noisy. The lookbehind is what excludes the self-closing form: it
+ * requires the opening tag to end in something other than a slash, so only a
+ * genuinely paired block matches.
+ *
+ * Whitespace rather than deletion so the reported line numbers stay the file's.
+ */
+function blankCodeBlocks(text) {
+  return text.replace(
+    /<(style|script)\b[^>]*(?<!\/)>[\s\S]*?<\/\1>/g,
+    (block) => block.replace(/[^\n]/g, ' '),
+  );
+}
+
 function lintFile(file) {
-  const lines = readFileSync(file, 'utf8').split('\n');
+  const lines = blankCodeBlocks(readFileSync(file, 'utf8')).split('\n');
   let inFrontmatterFence = false;
   // A Markdoc tag whose attributes run over several lines: the opener carries
   // `{%`, the closer `%}`, and the lines between are markup with no `{%` of
@@ -185,7 +216,7 @@ function lintFile(file) {
   let failures = 0;
 
   lines.forEach((line, i) => {
-    // Astro component script blocks are code, not copy.
+    // The Astro component script fence is code, not copy.
     if (line.trim() === '---') { inFrontmatterFence = !inFrontmatterFence; return; }
     if (inFrontmatterFence && extname(file) === '.astro') return;
     if (/^\s*(\/\/|\/\*|\*)/.test(line)) return;

@@ -20,4 +20,16 @@ export default [
     languageOptions: { globals: { process: 'readonly', console: 'readonly' } },
     rules: { 'no-console': 'off', 'no-undef': 'off' },
   },
+  {
+    /*
+     * The one serverless route. `no-console` is a rule about the browser — a
+     * log line on a page is noise nobody sees — and on a function it is the
+     * inverse: the platform log is the only record that a lead arrived, which
+     * layers screened it, and which destinations took it. Warnings and errors
+     * were already allowed; this adds the successful case, which is the line
+     * you actually want when somebody asks whether a message came through.
+     */
+    files: ['src/pages/api/**/*.ts'],
+    rules: { 'no-console': 'off' },
+  },
 ];

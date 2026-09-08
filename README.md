@@ -27,10 +27,11 @@ bun run dev
 | `bun run verify:content` | Every Markdoc tag and node has a renderer, every singleton has its file, no orphan content |
 | `bun run redirects:build` | Regenerates `vercel.json` from `data/redirects.csv` |
 | `bun run build` | Astro build — also where content schemas and Markdoc tags are validated |
-| `bun run verify:static-build` | No serverless function, no `/keystatic` route, no Keystatic in the output |
+| `bun run verify:static-build` | One serverless function and only the three routes allowed to reach it, no `/keystatic` route, no Keystatic in the output |
 | `bun run verify:jsonld` | JSON-LD parses, NAP matches `site.config`, canonical present, a `Service` node on all 14 offering pages, breadcrumbs and FAQ text visible on the page, `og:image` in the build |
 | `bun run verify:sitemap` | The sitemap and the built site list the same pages, `noindex` on neither side, real dates, `robots.txt` names it |
 | `bun run verify:motion` | Every animation behind `prefers-reduced-motion: no-preference`, no forwards fill on a time-driven animation, both ends of the title morph derived from one function, no literal `transition:name` in the build, the hero readout resting at 0.00° |
+| `bun run verify:forms` | Both forms in the built HTML, every field against the manifest, `method`/`action`/`enctype` so they submit with no JavaScript, the honeypot out of the tab order, and every `tel:` link carrying the click-to-call hook |
 | `bun run verify:redirects <origin>` | One hop, right destination, and a live destination for pages this build produces |
 
 `verify:redirects`, Lighthouse and axe need a deployed origin, so CI runs them
@@ -241,6 +242,10 @@ photographs land**:
   is 0.**
 * The CI link check skips the CDN — thirty-odd requests a run at one host fails
   on a rate limiter rather than on a broken link.
+* The CSP's `img-src` names both picsum origins. That line was missing when the
+  placeholders landed, so on a deployed origin every one of them was blocked and
+  only the badge rendered — invisible locally, because the CSP lives in
+  `vercel.json` and nothing serves it under `astro dev`.
 
 Replacing them is deleting `src/lib/placeholders.ts` and following the type
 errors.
@@ -300,6 +305,58 @@ The homepage hero image is optional and **replaces** the thrust-angle diagram
 rather than stacking under it. The Keystatic field says so; `docs/phase-2-motion.md`
 says why.
 
+## Forms
+
+Two forms — a service request on `/contact`, an application on
+`/company/careers` — both posting to `/api/contact`, which is the **one**
+serverless function the deployed site carries. `verify:static-build` gates that:
+it checks the routing table, not just the function count, because the adapter
+bundles every on-demand route into one function.
+
+They work with no JavaScript. A real `method="post"`, native validation
+attributes, and a 303 to `/contact/thanks` on success or to
+`/contact#form-problem` on failure — where a panel hidden until it is the
+`:target` shows the message with no script and no query string. With scripting
+the same submission goes by `fetch` and the reader keeps their place.
+
+`src/lib/forms/fields.ts` declares what each form asks. The component renders
+from it, the endpoint validates against it, and `verify:forms` checks the built
+HTML carries it — so a renamed field cannot silently stop being validated.
+
+Four spam layers: a honeypot, a timing trap, Turnstile, and an Upstash rate
+limit. All four fail **open**, deliberately. A missing Turnstile token is what a
+reader with JavaScript off looks like, so it is delivered and marked
+`unverified` under a stricter rate limit rather than refused; an outage at
+Cloudflare or Upstash does not close the form. One missed message about a truck
+that is down costs more than a spam that got through.
+
+Every submission goes to two places — an email through Resend and a task on the
+ClickUp Leads list — and either one succeeding is a success. Email is not
+durable storage.
+
+`docs/phase-5-forms.md` has the whole of it, including the one deviation from
+the phase brief: uploads post with the form rather than through a presigned PUT,
+because a presigned PUT needs JavaScript.
+
+### Configuration
+
+None of it is required — the site builds and the form renders with nothing set,
+and `src/lib/forms/env.ts` reports the state in every log line. What changes is
+what the form can do.
+
+| Variable | Unset means |
+| --- | --- |
+| `PUBLIC_TURNSTILE_SITE_KEY` | No widget; every submission is `unverified`. Build-time, so changing it needs a rebuild |
+| `TURNSTILE_SECRET_KEY` | Tokens are not verified |
+| `RESEND_API_KEY`, `LEAD_FROM_EMAIL`, `LEAD_TO_EMAIL` | No email. All three or none |
+| `CLICKUP_API_TOKEN`, `CLICKUP_LEADS_LIST_ID` | No lead on the board |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | No rate limit |
+| `BLOB_READ_WRITE_TOKEN` | Uploads are dropped, and the lead says so |
+
+The email variables have nothing correct to be set to yet: the mailbox
+(`service@eaglespancorp.com`) and the sending domain verification are both open
+blockers. With ClickUp configured and Resend not, a lead still reaches the shop.
+
 ## NAP
 
 `src/site.config.ts` is the only place a phone number, address or set of hours
@@ -324,13 +381,16 @@ scripts/    build + verification CLIs, and their tests
 src/
   components/ header, footer, breadcrumbs, index lists, the page templates,
               ThrustAngle (the hero diagram)
+    forms/    Form.astro — both forms, rendered from the field manifest
     markdoc/  a renderer per custom tag and per overridden node
   content/    the content itself — Keystatic writes here, Astro reads it
   integrations/ dev-only Keystatic wiring
   layouts/    BaseLayout
   lib/        schema graph, routes, page inventory, lastmod, OG renderer,
               text pipeline, remark plugin, content and tag manifests
-  pages/      routes, plus sitemap.xml, robots.txt and the /og/*.png endpoint
+    forms/    the field manifest, validation, spam screening, delivery
+  pages/      routes, plus sitemap.xml, robots.txt, the /og/*.png endpoint
+              and api/contact.ts — the one on-demand route
   styles/     tokens.css, fonts.css (generated), global.css
 
 keystatic.config.ts    the editor — collections, singletons, fields

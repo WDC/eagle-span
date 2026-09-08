@@ -23,6 +23,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
+import { staticRoot } from './lib/dist.mjs';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const origin = (process.argv[2] ?? process.env['DEPLOY_URL'] ?? '').replace(/\/$/, '');
 
@@ -33,7 +35,7 @@ if (!origin) {
 
 const { redirects } = JSON.parse(readFileSync(resolve(root, 'vercel.json'), 'utf8'));
 
-const dist = resolve(root, 'dist');
+const dist = staticRoot(root);
 if (!existsSync(dist)) {
   console.error('dist/ is missing — run `bun run build` before verifying redirects.');
   process.exit(2);

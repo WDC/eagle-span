@@ -1,0 +1,551 @@
+---
+/**
+ * Every form on the site, rendered from `src/lib/forms/fields.ts`.
+ *
+ * The markup here is the half of the manifest a reader sees; `validate.ts` is
+ * the half the endpoint enforces. Neither restates the other's rules — the
+ * `required`, `maxlength` and `pattern` attributes below are written from the
+ * same field objects the validator walks, so a bound cannot be tightened in one
+ * place and left alone in the other.
+ *
+ * It works with no JavaScript. That is not a fallback, it is the design: a real
+ * `method="post"` to a real `action`, native validation attributes doing the
+ * client-side checking a browser already does well, and a 303 to a page on the
+ * way back. The script this page loads adds three things and removes none — a
+ * timestamp for the spam trap, the Turnstile widget, and submitting without
+ * losing the reader's place.
+ */
+import {
+  FORMS,
+  HONEYPOT_FIELD,
+  KIND_FIELD,
+  TIMING_FIELD,
+  type Field,
+  type FormKind,
+} from '~/lib/forms/fields.ts';
+import { site } from '~/site.config.ts';
+
+interface Props {
+  kind: FormKind;
+  /** Sits above the fields. Content, from the entry that owns the page. */
+  intro: string;
+  /** Shown in place of the form after a scripted submission. Also content. */
+  success: string;
+  /** Labels the form for a screen reader, and titles the panel. */
+  heading: string;
+}
+
+const { kind, intro, success, heading } = Astro.props;
+const spec = FORMS[kind];
+
+/*
+ * Public by definition — it identifies the widget to Cloudflare and is read by
+ * every visitor. Absent is a supported state: the widget does not render, the
+ * endpoint records `turnstile:no-signal`, and the submission is delivered under
+ * the stricter rate limit. See docs/phase-5-forms.md.
+ */
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+
+const fieldId = (field: Field) => `${kind}-${field.name}`;
+const helpId = (field: Field) => `${fieldId(field)}-help`;
+const describedBy = (field: Field) => (field.help ? helpId(field) : undefined);
+---
+
+<div class="c-panel c-panel--raised form" id={`${kind}-form`}>
+  <h2 class="form__heading u-label">{heading}</h2>
+  <p class="form__intro">{intro}</p>
+
+  {/*
+    The failure landing. Hidden until the endpoint redirects to its fragment,
+    which is how a static page shows a server-side result with no script and no
+    query string. `:target` is doing the work; see the rule in the style block.
+  */}
+  <div class="form__problem" id="form-problem" role="alert" tabindex="-1">
+    <p>
+      <strong>That did not go through.</strong> Nothing was sent, so nobody has seen it.
+      Call the shop on
+      <a class="c-link u-tabular u-nowrap" href={`tel:${site.phoneE164}`} data-conversion="call">
+        {site.phoneDisplay}
+      </a> and we will take the details that way.
+    </p>
+  </div>
+
+  <form
+    class="form__form"
+    method="post"
+    action="/api/contact"
+    enctype="multipart/form-data"
+    data-form={kind}
+    data-success={success}
+  >
+    <input type="hidden" name={KIND_FIELD} value={kind} />
+    <input type="hidden" name={TIMING_FIELD} value="" />
+
+    {/*
+      The honeypot. A real text input rather than `type="hidden"`, because a
+      bot that skips hidden inputs still fills a visible one called “website”.
+      Taken out of the tab order, hidden from assistive technology, and told not
+      to autofill — a password manager filling this on a reader’s behalf would
+      cost them their message.
+    */}
+    <div class="form__hp" aria-hidden="true">
+      <label for={`${kind}-${HONEYPOT_FIELD}`}>Website</label>
+      <input
+        id={`${kind}-${HONEYPOT_FIELD}`}
+        type="text"
+        name={HONEYPOT_FIELD}
+        tabindex="-1"
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="form__grid">
+      {
+        spec.fields.map((field) => (
+          <div class:list={['form__field', field.wide && 'form__field--wide']}>
+            {field.kind === 'radio' ? (
+              <fieldset class="form__fieldset">
+                <legend class="form__label">
+                  {field.label}
+                  {field.required && <span class="form__req" aria-hidden="true">*</span>}
+                </legend>
+                {field.help && <p class="form__help" id={helpId(field)}>{field.help}</p>}
+                <div class="form__choices">
+                  {field.options.map((option) => (
+                    <label class="form__choice">
+                      <input
+                        type="radio"
+                        name={field.name}
+                        value={option.value}
+                        required={field.required}
+                        aria-describedby={describedBy(field)}
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ) : (
+              <Fragment>
+                <label class="form__label" for={fieldId(field)}>
+                  {field.label}
+                  {field.required && <span class="form__req" aria-hidden="true">*</span>}
+                </label>
+                {field.help && <p class="form__help" id={helpId(field)}>{field.help}</p>}
+
+                {field.kind === 'textarea' && (
+                  <textarea
+                    class="form__control"
+                    id={fieldId(field)}
+                    name={field.name}
+                    rows={field.rows}
+                    maxlength={field.max}
+                    required={field.required}
+                    aria-describedby={describedBy(field)}
+                  />
+                )}
+
+                {field.kind === 'select' && (
+                  <select
+                    class="form__control"
+                    id={fieldId(field)}
+                    name={field.name}
+                    required={field.required}
+                    aria-describedby={describedBy(field)}
+                  >
+                    <option value="">Choose one</option>
+                    {field.options.map((option) => (
+                      <option value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                )}
+
+                {field.kind === 'file' && (
+                  <input
+                    class="form__control form__control--file"
+                    id={fieldId(field)}
+                    type="file"
+                    name={field.name}
+                    accept={field.accept.join(',')}
+                    required={field.required}
+                    aria-describedby={describedBy(field)}
+                  />
+                )}
+
+                {field.kind === 'text' && (
+                  <input
+                    class="form__control"
+                    id={fieldId(field)}
+                    type={field.type}
+                    name={field.name}
+                    maxlength={field.max}
+                    required={field.required}
+                    pattern={field.pattern}
+                    autocomplete={field.autocomplete}
+                    aria-describedby={describedBy(field)}
+                  />
+                )}
+              </Fragment>
+            )}
+            <p class="form__error" data-error-for={field.name} hidden />
+          </div>
+        ))
+      }
+    </div>
+
+    {/*
+      Down now is a call, not a form. Revealed by `:has()` on the checked
+      radio, so it needs no script and it appears the moment the reader says
+      the truck is down — which is the moment the number matters, not after
+      they have typed four more answers.
+    */}
+    <div class="form__urgent">
+      <p class="form__urgent-copy">
+        <strong>If the truck is down, call.</strong> The form reaches us during shop hours;
+        the phone reaches whoever can tell you if it can be driven in.
+      </p>
+      <a
+        class="c-btn c-btn--primary u-tabular u-nowrap"
+        href={`tel:${site.phoneE164}`}
+        data-conversion="call"
+      >
+        {site.phoneDisplay}
+      </a>
+    </div>
+
+    {
+      turnstileSiteKey && (
+        <div
+          class="cf-turnstile form__turnstile"
+          data-sitekey={turnstileSiteKey}
+          data-appearance="interaction-only"
+        />
+      )
+    }
+
+    <div class="form__actions">
+      <button class="c-btn c-btn--primary" type="submit">{spec.submitLabel}</button>
+      <p class="form__note">
+        <span aria-hidden="true">*</span> Required. We answer during shop hours, {' '}
+        <span class="u-nowrap">{site.hours.days}</span>.
+      </p>
+    </div>
+
+    <p class="form__result" data-result role="status" hidden />
+  </form>
+</div>
+
+{
+  turnstileSiteKey && (
+    <script
+      is:inline
+      async
+      defer
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+    />
+  )
+}
+
+<script>
+  /*
+   * The enhancement. Three jobs, none of which the form needs to work:
+   *
+   *   1. Stamp the render time, so the timing trap has a signal at all.
+   *   2. Submit with fetch, so a reader who mistypes an email keeps the four
+   *      paragraphs they just wrote instead of getting them back through the
+   *      browser's history.
+   *   3. Put the endpoint's per-field errors next to the fields.
+   *
+   * With this file absent or blocked the form still posts, still validates in
+   * the browser, and still lands on a page that says what happened.
+   */
+  const forms = document.querySelectorAll<HTMLFormElement>('form[data-form]');
+
+  for (const form of forms) {
+    const stamp = form.querySelector<HTMLInputElement>('input[name="renderedAt"]');
+    if (stamp) stamp.value = String(Date.now());
+
+    const result = form.querySelector<HTMLElement>('[data-result]');
+    const errors = form.querySelectorAll<HTMLElement>('[data-error-for]');
+
+    const clearErrors = () => {
+      for (const slot of errors) {
+        slot.textContent = '';
+        slot.hidden = true;
+        const field = form.elements.namedItem(slot.dataset['errorFor'] ?? '');
+        if (field instanceof HTMLElement) field.removeAttribute('aria-invalid');
+      }
+    };
+
+    const say = (message: string, tone: 'ok' | 'bad') => {
+      if (!result) return;
+      result.textContent = message;
+      result.dataset['tone'] = tone;
+      result.hidden = false;
+    };
+
+    form.addEventListener('submit', async (event) => {
+      // Let the browser do its own validation pass first; it reports better.
+      if (!form.reportValidity()) return;
+
+      event.preventDefault();
+      clearErrors();
+
+      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      if (button) button.disabled = true;
+      say('Sending…', 'ok');
+
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { accept: 'application/json' },
+        });
+        const payload = (await response.json()) as {
+          ok?: boolean;
+          message?: string;
+          errors?: Record<string, string>;
+        };
+
+        if (payload.ok) {
+          const panel = form.closest('.form');
+          const done = document.createElement('p');
+          done.className = 'form__done';
+          done.setAttribute('role', 'status');
+          done.textContent = form.dataset['success'] ?? 'Thank you.';
+          form.replaceWith(done);
+          panel?.querySelector('.form__intro')?.remove();
+          done.scrollIntoView({ block: 'nearest' });
+          return;
+        }
+
+        if (payload.errors) {
+          for (const [name, message] of Object.entries(payload.errors)) {
+            const slot = form.querySelector<HTMLElement>(`[data-error-for="${name}"]`);
+            if (slot) {
+              slot.textContent = message;
+              slot.hidden = false;
+            }
+            const field = form.elements.namedItem(name);
+            if (field instanceof HTMLElement) field.setAttribute('aria-invalid', 'true');
+          }
+          say('Some answers need another look.', 'bad');
+        } else {
+          say(payload.message ?? 'That did not go through. Please call the shop.', 'bad');
+        }
+      } catch {
+        /*
+         * The network failed, which the no-script path would have handled by
+         * navigating. Submitting the form for real is the correct recovery: it
+         * either works or lands the reader on the problem panel.
+         */
+        form.submit();
+        return;
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+  }
+</script>
+
+<style>
+  .form { margin-block-start: var(--s-6); }
+
+  .form__heading { display: block; }
+
+  .form__intro {
+    color: var(--c-ink-2);
+    margin-block-start: var(--s-1);
+    max-inline-size: var(--measure);
+  }
+
+  /*
+   * Off-canvas rather than `display: none`, because a bot reading the computed
+   * style skips what is not displayed and fills what is. Nothing here is
+   * reachable: it is out of the tab order and hidden from the accessibility
+   * tree by `aria-hidden` on the wrapper.
+   */
+  .form__hp {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .form__form { margin-block-start: var(--s-5); }
+
+  .form__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+    gap: var(--s-4);
+  }
+
+  .form__field--wide { grid-column: 1 / -1; }
+
+  .form__fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  .form__label {
+    display: block;
+    font-size: var(--t-fine);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--c-ink);
+    padding: 0;
+  }
+
+  .form__req {
+    color: var(--c-red);
+    margin-inline-start: 0.25ch;
+  }
+
+  .form__help {
+    font-size: var(--t-fine);
+    color: var(--c-ink-3);
+    margin-block-start: var(--s-1);
+  }
+
+  .form__control {
+    display: block;
+    inline-size: 100%;
+    margin-block-start: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    font: inherit;
+    color: var(--c-ink);
+    background: var(--c-ground);
+    border: 1px solid var(--c-rule-strong);
+    border-radius: var(--r-1);
+    transition: border-color var(--d-fast) var(--e-out), box-shadow var(--d-fast) var(--e-out);
+  }
+
+  .form__control:hover { border-color: var(--c-ink-3); }
+
+  .form__control:focus-visible {
+    outline: none;
+    border-color: var(--c-blue);
+    box-shadow: 0 0 0 3px var(--c-wash-blue);
+  }
+
+  .form__control[aria-invalid='true'] { border-color: var(--c-red); }
+
+  .form__control--file {
+    padding: var(--s-2);
+    font-size: var(--t-fine);
+  }
+
+  textarea.form__control {
+    resize: vertical;
+    min-block-size: 6rem;
+  }
+
+  .form__choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    margin-block-start: var(--s-2);
+  }
+
+  .form__choice {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    border: 1px solid var(--c-rule-strong);
+    border-radius: var(--r-1);
+    cursor: pointer;
+  }
+
+  .form__choice:has(input:checked) {
+    border-color: var(--c-blue);
+    background: var(--c-wash-blue);
+  }
+
+  .form__choice:has(input:focus-visible) { outline: 2px solid var(--c-blue); outline-offset: 2px; }
+
+  .form__error {
+    font-size: var(--t-fine);
+    color: var(--c-red);
+    margin-block-start: var(--s-1);
+  }
+
+  /*
+   * The whole panel is hidden until the reader says the truck is down. Not
+   * `display: none` on a script toggle — `:has()` on the checked radio, so it
+   * behaves identically with scripting off.
+   */
+  .form__urgent {
+    display: none;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    margin-block-start: var(--s-4);
+    padding: var(--s-4);
+    background: var(--c-wash-amber);
+    border-inline-start: 3px solid var(--c-amber);
+    border-radius: var(--r-1);
+  }
+
+  .form__form:has(input[value='down-now']:checked) .form__urgent { display: flex; }
+
+  .form__urgent-copy {
+    flex: 1 1 18rem;
+    margin: 0;
+    color: var(--c-ink-2);
+  }
+
+  .form__turnstile { margin-block-start: var(--s-4); }
+
+  .form__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3);
+    margin-block-start: var(--s-5);
+  }
+
+  .form__note {
+    font-size: var(--t-fine);
+    color: var(--c-ink-3);
+    margin: 0;
+  }
+
+  .form__result {
+    margin-block-start: var(--s-3);
+    font-size: var(--t-fine);
+  }
+
+  .form__result[data-tone='bad'] { color: var(--c-red); }
+  .form__result[data-tone='ok'] { color: var(--c-ink-2); }
+
+  .form__done {
+    margin-block-start: var(--s-4);
+    padding: var(--s-4);
+    background: var(--c-wash-green);
+    border-inline-start: 3px solid var(--c-target);
+    border-radius: var(--r-1);
+    color: var(--c-ink);
+  }
+
+  /*
+   * The no-script result. The endpoint redirects to `#form-problem`, and the
+   * panel is only shown when it is the target — so the message appears exactly
+   * once, for the reader it happened to, and never on a fresh page load.
+   */
+  .form__problem {
+    display: none;
+    margin-block-start: var(--s-4);
+    padding: var(--s-4);
+    background: var(--c-wash-red);
+    border-inline-start: 3px solid var(--c-red);
+    border-radius: var(--r-1);
+  }
+
+  .form__problem:target { display: block; }
+
+  .form__problem p { margin: 0; }
+</style>

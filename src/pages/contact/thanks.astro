@@ -1,0 +1,93 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { getSingleton } from '~/lib/content.ts';
+import { PAGES, SECTIONS } from '~/lib/routes.ts';
+import { site } from '~/site.config.ts';
+
+/*
+ * Where a submission lands when there is no JavaScript to keep the reader on
+ * the page they were on.
+ *
+ * It is a real page rather than a query string on `/contact` for two reasons.
+ * A static page cannot read `?sent=1` without script, so the query would show
+ * the reader nothing; and a 303 to a distinct URL is what makes the browser's
+ * back button and a refresh both safe — the thing POST-redirect-GET exists for.
+ *
+ * Both forms redirect here. They are told the same thing, so a second page
+ * would be the same page with a different heading.
+ *
+ * `noindex`, because it is a receipt: it says nothing to a reader who arrives
+ * from a search, and it is out of the sitemap for the same reason. The OG card
+ * is still generated, since a redirect target with no card is a broken preview
+ * if anybody ever does paste the URL.
+ */
+const contact = await getSingleton('contact');
+
+const title = 'Message received';
+const description = 'Your message is with the shop. We answer during shop hours.';
+---
+
+<BaseLayout {title} {description} path="/contact/thanks" noindex>
+  <section class="l-band">
+    <div class="l-page">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label">Sent</p>
+        <div class="l-rail__body l-stack">
+          <h1>Message received</h1>
+          <p class="thanks__lede">{contact.data.formSuccess}</p>
+
+          <div class="c-panel c-panel--raised thanks__urgent">
+            <p>
+              <strong>If the unit is down now,</strong> call rather than wait for the reply.
+              Somebody in the shop can usually tell you over the phone whether it can be
+              driven in.
+            </p>
+            <a
+              class="c-btn c-btn--primary u-tabular u-nowrap"
+              href={`tel:${site.phoneE164}`}
+              data-conversion="call"
+            >
+              {site.phoneDisplay}
+            </a>
+          </div>
+
+          <div class="thanks__actions">
+            <a class="c-btn c-btn--ghost" href="/">Homepage</a>
+            <a class="c-btn c-btn--ghost" href={SECTIONS.services.index!}>{SECTIONS.services.label}</a>
+            <a class="c-btn c-btn--ghost" href={SECTIONS.repairs.index!}>{SECTIONS.repairs.label}</a>
+            <a class="c-btn c-btn--ghost" href={PAGES.contact}>Contact</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .thanks__lede {
+    font-size: var(--t-lead);
+    color: var(--c-ink-2);
+    max-inline-size: var(--measure);
+  }
+
+  .thanks__urgent {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3);
+    margin-block-start: var(--s-5);
+  }
+
+  .thanks__urgent p {
+    flex: 1 1 18rem;
+    margin: 0;
+    color: var(--c-ink-2);
+  }
+
+  .thanks__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    margin-block-start: var(--s-5);
+  }
+</style>
