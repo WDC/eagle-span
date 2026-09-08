@@ -23,7 +23,7 @@ bun run dev
 | `bun run lint:typography` | Straight quotes, `--`, lowercase `x`, missing nbsp before units — 13 rules |
 | `bun test` | Text pipeline, remark plugin, every typography lint rule |
 | `bun run verify:fonts` | woff2 digests, `fonts.css` and preload references, required OpenType features, font budget, OG font digests |
-| `bun run verify:tokens` | Text-token contrast (AA on both grounds), reserved use of target green |
+| `bun run verify:tokens` | Text-token contrast on the light grounds, the washes and the dark band, the `.t-deep` mapping resolved and checked through, and the mark-only colours (target green, amber, ink-4) kept out of `color:` |
 | `bun run verify:content` | Every Markdoc tag and node has a renderer, every singleton has its file, no orphan content |
 | `bun run redirects:build` | Regenerates `vercel.json` from `data/redirects.csv` |
 | `bun run build` | Astro build — also where content schemas and Markdoc tags are validated |
@@ -105,6 +105,7 @@ cargo install lychee --locked
 bun run build
 lychee --no-progress --include-fragments --root-dir "$PWD/dist" \
   --exclude '^https://www\.eaglespancorp\.com' \
+  --exclude '^https://(fastly\.)?picsum\.photos' \
   --exclude-path dist/fonts/OFL.txt \
   dist
 ```
@@ -148,11 +149,14 @@ gates the page — see `docs/phase-2-design-system.md` for why both.
 
 ## Motion
 
-One custom animation on the site: the home hero **thrust-angle** diagram. A
-top-down axle set 2.40° out of square against the geometric centerline, which
-resolves as the readout counts to 0.00°.
+One custom *drawing* animation on the site: the home hero **thrust-angle**
+diagram. A top-down axle set 2.40° out of square against the geometric
+centerline, which resolves as the readout counts to 0.00°.
 
-Two rules hold everywhere, and `verify:motion` enforces both:
+Everything else that moves is scroll-driven or a hover transition — section and
+item reveals, the masthead's shadow, the article reading progress bar. None of
+it is JavaScript, and the two rules below hold for all of it. `verify:motion`
+enforces both:
 
 * **The resting state is the final frame.** The markup and the unanimated CSS
   render the aligned truck and 0.00° — the thing that is true. Every animation
@@ -168,12 +172,78 @@ Two rules hold everywhere, and `verify:motion` enforces both:
 The rest is restraint: cross-document view transitions carrying an index row's
 title into the H1 of the page it opens (`fallback="none"`, so browsers without
 the feature navigate normally rather than having it faked in script), and native
-scroll-driven section reveals with no observer and no toggled class. Total
-script on the site is 5.8 KB gzipped against a 50 KB budget.
+scroll-driven reveals with no observer and no toggled class. Total script on the
+site is 5.8 KB gzipped against a 50 KB budget — unchanged by the interface work,
+because none of it is script.
+
+The scroll-driven pieces each degrade to something correct rather than to
+something missing: a reveal that never runs is content that was always visible,
+a masthead that cannot animate keeps its hairline, and the reading progress bar
+is `display: none` until the browser proves it can drive it — a progress bar
+that cannot progress is a green line across somebody's screen.
 
 See [`docs/phase-2-motion.md`](docs/phase-2-motion.md) for the timing table, why
 the resolve is linear, the directive-versus-attribute trap in `transition:name`,
-and the deferred diagrams.
+and the deferred diagrams, and
+[`docs/phase-4.5-visual-polish.md`](docs/phase-4.5-visual-polish.md) for the
+scroll-driven additions.
+
+## The visual system
+
+The page is built from full-bleed **bands** rather than one white column: white
+for reading, `--c-ground-2` for indexes, a wash for anything advisory, and a
+dark band for the two moments a page makes a claim rather than explaining one —
+the shop's numbers and the closing action. The footer is the third.
+
+The dark band is `.t-deep`, and it works by **remapping the ground and ink
+tokens** rather than by restyling anything. Every component reads `--c-ink-2`
+and `--c-rule` rather than a literal colour, so a component dropped into a band
+inverts without knowing the band exists. `verify:tokens` parses that rule,
+resolves the mapping and runs the same AA check through it, so an ink left
+unmapped — which would keep its light value on near-black — fails the build.
+
+Three colour rules are gated rather than documented:
+
+* **Mark colours never carry text.** `--c-target` (3.37:1), `--c-amber` (4.46:1
+  on the red wash) and `--c-ink-4` (3.31:1) are rules, ticks and 2px borders.
+  Each has an ink twin for the cases where it has to be read — and the dark band
+  has its own four, because a colour that clears AA on white does not clear it
+  on near-black.
+* **A wash is a ground.** The four tints are in the contrast check alongside
+  white, because a callout is a tint with body copy on it.
+* **Tone is never colour alone.** A callout carries its tone in the label, the
+  axis weight and the wash, because each of those fails somewhere — print,
+  forced colours, colour vision.
+
+Interaction is CSS and native elements throughout: the narrow-viewport menu and
+the FAQ accordion are `<details>`, the panels and rows respond on hover through
+transitions, and the sticky masthead earns its shadow from a scroll timeline.
+See [`docs/phase-4.5-visual-polish.md`](docs/phase-4.5-visual-polish.md) for
+what changed from Phase 2 and why, including the FAQ decision this reverses.
+
+## Photography, and the placeholders standing in for it
+
+**Every image on the site is a placeholder and says so on the page.** The shop
+shoot and the Webflow asset export are both open blockers (ClickUp 86bbw07ex and
+86bbw07c4), and the design has always assumed heavy photography — so the slots
+are filled from a public CDN, seeded per slot, under a visible badge.
+
+Everything comes from `src/lib/placeholders.ts`. The seed names the slot
+(`home-shop-bays`), not the picture, so the same photograph comes back on every
+build; the alt text describes the slot rather than the picture, because saying
+an unrelated photograph is the shop floor would be a lie told specifically to
+the reader who cannot see it.
+
+Two gates carry a temporary allowance for them, and **both revert when the
+photographs land**:
+
+* `lighthouse-budget.json` allows 24 third-party requests. **The design number
+  is 0.**
+* The CI link check skips the CDN — thirty-odd requests a run at one host fails
+  on a rate limiter rather than on a broken link.
+
+Replacing them is deleting `src/lib/placeholders.ts` and following the type
+errors.
 
 ## Content
 

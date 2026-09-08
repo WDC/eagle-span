@@ -4,35 +4,65 @@ import type { FaqItem } from '~/lib/schema.ts';
 /*
  * The rendered half of the `FAQPage` node.
  *
- * Every answer is visible text, not a collapsed `<details>`: an `acceptedAnswer`
- * a reader cannot find on the page is the structured-data violation Google
- * actions manually, and the whole reason the `faqs` collection has no Markdoc
- * body is so this markup and the JSON-LD can share one string rather than two
- * that drift.
+ * Phase 4 rendered every answer open, on the reading that a collapsed
+ * `acceptedAnswer` is the structured-data violation Google actions manually.
+ * That is half right, and it is worth writing down which half, because the
+ * conclusion changed here.
+ *
+ * The rule is that the answer must be **present on the page and reachable by
+ * the reader** — Google's own documentation permits an expandable section and
+ * its examples use one. What it forbids is an answer that exists only in the
+ * markup, or that arrives from a fetch after the click. This is a `<details>`:
+ * the text is in the HTML on first byte, it is found by in-page search, it is
+ * announced by a screen reader, and `verify:jsonld` still matches every
+ * rendered answer against the graph — the gate did not change, and it passes
+ * for the same reason it did before.
+ *
+ * What it buys is a page of thirty-five questions a reader can scan. The open
+ * version was four screens of prose nobody read past the second question.
+ *
+ * The `name` attribute makes the group exclusive: opening one shuts the last,
+ * which is the browser's own accordion behaviour and needs no script. A browser
+ * that does not support it gets a set of independent disclosures, which is a
+ * fine outcome rather than a broken one.
+ *
+ * Each question is a real `<h3>` inside the `<summary>`, so the page outline
+ * lists the questions and a screen reader can jump between them. That is legal
+ * — `summary` takes phrasing content or one heading — and it is the reason this
+ * is not a `<dl>`: a definition list cannot have `<details>` for children, and
+ * a heading a reader can navigate to beats a list element nobody queries.
  */
 interface Props {
   items: readonly FaqItem[];
   heading?: string | undefined;
+  /** The `<details name>` group. Distinct per page when a page has two sets. */
+  group?: string | undefined;
 }
 
-const { items, heading = 'Common questions' } = Astro.props;
+const { items, heading = 'Common questions', group = 'faqs' } = Astro.props;
 ---
 
 {
   items.length > 0 && (
-    <section class="l-page l-section faqs" aria-labelledby="faqs-heading">
-      <div class="l-rail">
-        <p class="l-rail__mark u-label u-tabular">FAQ</p>
-        <div class="l-rail__body">
-          <h2 id="faqs-heading">{heading}</h2>
-          <dl class="faqs__list">
-            {items.map((faq) => (
-              <div class="faqs__row">
-                <dt class="faqs__q">{faq.question}</dt>
-                <dd class="faqs__a">{faq.answer}</dd>
-              </div>
-            ))}
-          </dl>
+    <section class="l-band faqs" aria-labelledby="faqs-heading">
+      <div class="l-page">
+        <div class="l-rail">
+          <p class="l-rail__mark u-label u-tabular">FAQ</p>
+          <div class="l-rail__body">
+            <h2 id="faqs-heading" class="faqs__head">{heading}</h2>
+
+            <div class="c-accordion faqs__list">
+              {items.map((faq) => (
+                <details class="c-accordion__item" name={group}>
+                  <summary class="c-accordion__summary">
+                    <h3 class="faqs__q">{faq.question}</h3>
+                    <span class="c-accordion__mark" aria-hidden="true" />
+                  </summary>
+                  <p class="c-accordion__body">{faq.answer}</p>
+                </details>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -40,18 +70,14 @@ const { items, heading = 'Common questions' } = Astro.props;
 }
 
 <style>
-  .faqs__list { margin-block-start: var(--s-4); }
+  .faqs__head { margin-block-end: var(--s-4); }
+  .faqs__list { max-width: var(--measure); }
 
-  .faqs__row {
-    padding-block: var(--s-3);
-    border-block-start: var(--hairline) solid var(--c-rule);
-    max-width: var(--measure);
-  }
-
-  .faqs__q { font-weight: 620; }
-
-  .faqs__a {
-    margin: var(--s-1) 0 0;
-    color: var(--c-ink-2);
+  /* The question is a heading for the outline, at body size for the reader. */
+  .faqs__q {
+    font-size: var(--t-body);
+    font-weight: 620;
+    letter-spacing: var(--ls-body);
+    line-height: var(--lh-body);
   }
 </style>

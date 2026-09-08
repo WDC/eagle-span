@@ -176,5 +176,25 @@ const nodes = [
       <slot />
     </main>
     <SiteFooter />
+
+    {/*
+      The narrow-viewport action bar: the two things a visitor came to do, fixed
+      to the bottom of the screen where a thumb is.
+
+      It is markup here and styling in global.css because it is a fixed element
+      that also has to reserve room for itself at the end of the document, and
+      `body { padding-block-end }` is not something a scoped component style can
+      say. Below 48rem only — on a desktop the sticky masthead already carries
+      both actions, and a bar pinned over the bottom of a wide window is just a
+      thing covering the footer.
+    */}
+    <nav class="actionbar" aria-label="Quick actions">
+      <a class="actionbar__item actionbar__call u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>
+        {site.phoneDisplay}
+      </a>
+      <a class="actionbar__item actionbar__book" href={settings.data.cta.href}>
+        {settings.data.cta.label}
+      </a>
+    </nav>
   </body>
 </html>

@@ -47,6 +47,90 @@
   --c-target: #12a150;
   --c-target-ink: #0c7a3c;
 
+
+  /* ---- Depth: the instrument band ------------------------------------- */
+  /*
+   * Phase 2 shipped one ground family — white, and two greys a shade off it.
+   * That is a correct palette for a document and not enough for a page: with
+   * nothing but hairlines to build with, every section weighs the same and the
+   * eye is given no reason to stop anywhere. These are the dark grounds that
+   * fix it, and they are used as *bands* — a full-bleed section that inverts —
+   * rather than as boxes scattered through the page.
+   *
+   * Contrast is checked in both directions: verify-tokens.mjs holds the light
+   * inks against the light grounds and the `on-deep` inks against these two.
+   */
+  --c-deep: #0f1417;
+  --c-deep-2: #171e23;
+  --c-deep-3: #1e262c;
+  /* Hairlines on a dark ground. The dark twins of --c-rule; neither is text. */
+  --c-deep-rule: #2a343b;
+  --c-deep-rule-strong: #3b474f;
+
+  --c-on-deep: #f5f7f8;    /* 17.25 : 15.68 */
+  --c-on-deep-2: #c2ccd2;  /* 11.35 : 10.32 */
+  --c-on-deep-3: #9aa6ad;  /*  7.44 :  6.76 */
+
+  /*
+   * The accents again, redrawn for a dark ground. A colour that clears AA on
+   * white does not clear it on near-black — --c-target-ink is 3.41:1 on
+   * --c-deep — so an inverted section gets its own three rather than reusing
+   * ones that happen to look bright enough.
+   */
+  --c-target-on-deep: #3fcf7f; /*  9.22 :  8.38 */
+  --c-blue-on-deep: #7fb2ff;   /*  8.58 :  7.79 */
+  --c-red-on-deep: #ff8a8a;    /*  8.17 :  7.42 */
+
+  /* ---- Washes ---------------------------------------------------------- */
+  /*
+   * Four tints, at the weight where a panel reads as a different surface and
+   * not as a highlighter. They carry ink, never their own hue's ink at small
+   * sizes, and they are grounds in verify-tokens.mjs so a callout cannot end
+   * up with text that passes on white and fails on the tint under it.
+   */
+  --c-wash-blue: #eef3fd;
+  --c-wash-green: #e9f6ee;
+  --c-wash-amber: #fdf3e6;
+  --c-wash-red: #fdeef0;
+
+  /*
+   * Caution, which the palette had no colour for: red was the only warning ink
+   * and it was doing safety, so a caution callout and a safety callout looked
+   * the same. Same split as the green — the mark is the saturated one, the ink
+   * is the one dark enough to be read.
+   */
+  --c-amber: #b45309;
+  --c-amber-ink: #8a4b06;      /*  6.80 on white */
+  --c-amber-on-deep: #f0b26b;  /*  9.96 :  9.05 on the dark grounds */
+
+  /* ---- Surface --------------------------------------------------------- */
+  /*
+   * Radii stay small. A 14px corner reads as an app; the drawing convention
+   * this design borrows from has square corners and the panels keep enough of
+   * one to look machined rather than soft. --r-pill is for chips only.
+   */
+  --r-1: 3px;
+  --r-2: 6px;
+  --r-3: 10px;
+  --r-pill: 999px;
+
+  /*
+   * Elevation, in three steps and used sparingly: a resting panel takes none,
+   * a panel under the pointer takes --shadow-2, and only something genuinely
+   * floating over the page — the sticky header once it has left the top, the
+   * mobile action bar — takes --shadow-3.
+   */
+  --shadow-1: 0 1px 2px rgb(10 10 11 / 6%);
+  --shadow-2: 0 6px 18px rgb(10 10 11 / 8%), 0 2px 4px rgb(10 10 11 / 4%);
+  --shadow-3: 0 16px 40px rgb(10 10 11 / 14%), 0 3px 8px rgb(10 10 11 / 6%);
+  --shadow-deep: 0 20px 50px rgb(0 0 0 / 45%);
+
+  /* Panel padding, so a callout, a card and a spec block share one inset. */
+  --pad-panel: clamp(1.1rem, 0.9rem + 0.9vw, 1.75rem);
+
+  /* Height of the sticky masthead, so anchors and sticky children clear it. */
+  --h-masthead: 4.25rem;
+
   /* ---- Type ----------------------------------------------------------- */
   /*
    * Source Sans 3, subset and self-hosted as 'Eagle Span Sans'. Chosen for its

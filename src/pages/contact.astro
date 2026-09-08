@@ -6,6 +6,7 @@ import LocationCard from '~/components/LocationCard.astro';
 import PageHeader from '~/components/PageHeader.astro';
 import { getSingleton } from '~/lib/content.ts';
 import { PAGES, pageCrumbs } from '~/lib/routes.ts';
+import { site } from '~/site.config.ts';
 
 /*
  * `/contact`.
@@ -40,34 +41,56 @@ const crumbs = pageCrumbs('Contact', path);
 >
   <PageHeader mark="Contact" title={page.data.title} lede={page.data.lede} {crumbs} />
 
-  <div class="l-page l-section contact">
-    <div class="contact__body">
-      <Content />
-      <p class="contact__form-note">{page.data.formIntro}</p>
-    </div>
+  <div class="l-band">
+    <div class="l-page l-split">
+      <div class="contact__body">
+        <Content />
 
-    <div class="contact__where">
-      <h2 class="u-label">Where</h2>
-      <LocationCard />
+        {/*
+          The form is Phase 5 and this is the copy that will sit above it. Until
+          then the page has to answer “how do I reach you” without one, so the
+          two channels that exist are a panel rather than a sentence.
+        */}
+        <div class="c-panel c-panel--raised contact__reach">
+          <p class="c-kicker">
+            <span class="c-tick" aria-hidden="true" />
+            <span class="u-label">Reach the shop</span>
+          </p>
+          <p class="contact__intro">{page.data.formIntro}</p>
+
+          <div class="contact__actions">
+            <a class="c-btn c-btn--primary u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>
+              {site.phoneDisplay}
+            </a>
+            <a class="c-btn c-btn--ghost" href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
+              Directions<span class="u-visually-hidden"> (opens in a new tab)</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact__where">
+        <h2 class="u-label contact__where-head">Where</h2>
+        <LocationCard />
+      </div>
     </div>
   </div>
 </BaseLayout>
 
 <style>
-  .contact {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-    gap: var(--s-6) var(--gutter);
-    border-block-start: var(--hairline) solid var(--c-rule);
-    padding-block-start: var(--s-5);
-  }
+  .contact__reach { margin-block-start: var(--s-6); }
 
-  .contact__form-note {
-    margin-block-start: var(--s-5);
-    padding-block-start: var(--s-3);
-    border-block-start: var(--hairline) solid var(--c-rule);
+  .contact__intro {
     color: var(--c-ink-2);
+    margin-block-start: var(--s-1);
   }
 
-  .contact__where h2 { margin-block-end: var(--s-3); }
+  .contact__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    margin-block-start: var(--s-4);
+  }
+
+  .contact__where-head { margin-block-end: var(--s-3); }
 </style>

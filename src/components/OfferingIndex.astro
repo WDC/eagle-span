@@ -49,22 +49,26 @@ const crumbs = pageCrumbs(SECTIONS[collection].label, path);
     {crumbs}
   />
 
-  <section class="l-page" aria-label={SECTIONS[collection].label}>
-    <EntryList
-      empty={`No ${SECTIONS[collection].label.toLowerCase()} are published yet.`}
-      items={entries.map((entry) => ({
-        href: entryPath(collection, entry.id),
-        title: entry.data.navLabel,
-        summary: entry.data.summary,
-      }))}
-    />
+  <section class="l-band" aria-label={SECTIONS[collection].label}>
+    <div class="l-page">
+      <EntryList
+        empty={`No ${SECTIONS[collection].label.toLowerCase()} are published yet.`}
+        items={entries.map((entry) => ({
+          href: entryPath(collection, entry.id),
+          title: entry.data.navLabel,
+          summary: entry.data.summary,
+        }))}
+      />
+    </div>
   </section>
 
-  <section class="l-page l-section" aria-label="About this section">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label">Note</p>
-      <div class="l-rail__body">
-        <Content />
+  <section class="l-band l-band--ground-2" aria-label="About this section">
+    <div class="l-page">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label">Note</p>
+        <div class="l-rail__body">
+          <Content />
+        </div>
       </div>
     </div>
   </section>

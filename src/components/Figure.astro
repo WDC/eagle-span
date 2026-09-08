@@ -1,0 +1,80 @@
+---
+import type { PlaceholderImage } from '~/lib/placeholders.ts';
+
+/*
+ * One image, framed.
+ *
+ * Every photograph on the site goes through here, which buys three things that
+ * were being repeated by hand in five templates: an explicit intrinsic size so
+ * the image cannot move the text under it while it loads, an aspect ratio the
+ * layout owns rather than the file, and — while the shop photography is still
+ * outstanding — a badge that says out loud that the picture is a stand-in.
+ *
+ * The badge is deliberately not subtle. A placeholder that looks like a design
+ * decision is a placeholder that launches. It is `aria-hidden` because the alt
+ * text of a placeholder already says so in words — see src/lib/placeholders.ts
+ * — and repeating it would be the badge, not the picture, being announced.
+ */
+interface Props {
+  image: PlaceholderImage | { src: string; width: number; height: number; isPlaceholder?: undefined };
+  alt: string;
+  /** CSS aspect ratio for the frame, e.g. "16 / 9". Defaults to 3 / 2. */
+  ratio?: string | undefined;
+  /** Above the fold, so it is not lazy and not decoded late. */
+  eager?: boolean | undefined;
+  /** Scales the image a little under the pointer. Cards and links only. */
+  zoom?: boolean | undefined;
+  caption?: string | undefined;
+  class?: string | undefined;
+}
+
+const { image, alt, ratio, eager = false, zoom = false, caption, class: className } = Astro.props;
+
+const isPlaceholder = 'isPlaceholder' in image && image.isPlaceholder === true;
+
+const classes = ['c-figure', zoom && 'c-figure--zoom', className].filter(Boolean).join(' ');
+---
+
+<figure class={classes} style={ratio ? `--ratio: ${ratio};` : undefined} data-placeholder={isPlaceholder ? '' : undefined}>
+  <img
+    src={image.src}
+    alt={alt}
+    width={image.width}
+    height={image.height}
+    loading={eager ? 'eager' : 'lazy'}
+    decoding={eager ? 'sync' : 'async'}
+    fetchpriority={eager ? 'high' : undefined}
+  />
+
+  {
+    isPlaceholder && (
+      <p class="c-figure__badge u-label" aria-hidden="true">
+        Placeholder
+      </p>
+    )
+  }
+
+  {caption && <figcaption class="c-figure__caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  /*
+   * `aria-hidden` on the badge and no mention of it in the alt text: it is a
+   * note to the people building the site, not information about the picture.
+   * When the real photograph lands the badge goes with the placeholder, and
+   * nothing in the accessible name has to change.
+   */
+  .c-figure__badge {
+    position: absolute;
+    inset-block-start: var(--s-2);
+    inset-inline-start: var(--s-2);
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--r-1);
+    background: var(--c-deep);
+    color: var(--c-on-deep-2);
+    font-size: var(--t-micro);
+  }
+
+  .c-figure__caption { padding-inline: var(--s-1); }
+</style>

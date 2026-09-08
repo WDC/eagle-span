@@ -112,10 +112,17 @@ jobs:
           # distribute alongside the font. It is not site content and its body
           # text carries Adobe and SIL URLs; crawling them adds 90 seconds and a
           # third-party timeout to every run for no signal.
+          #
+          # picsum.photos serves the placeholder photography (see
+          # src/lib/placeholders.ts). Every page carries several, so a run would
+          # fire thirty-odd requests at one host and fail the build on its rate
+          # limiter rather than on a broken link. The exclusion goes when the
+          # real photographs land and the module is deleted.
           args: >-
             --no-progress --include-fragments
             --root-dir "$GITHUB_WORKSPACE/dist"
             --exclude '^https://www\.eaglespancorp\.com'
+            --exclude '^https://(fastly\.)?picsum\.photos'
             --exclude-path dist/fonts/OFL.txt
             dist
           fail: true

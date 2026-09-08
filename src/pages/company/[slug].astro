@@ -63,11 +63,13 @@ const dateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZon
     </p>
   </PageHeader>
 
-  <div class="l-page l-section">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label u-tabular">{data.effectiveDate.getUTCFullYear()}</p>
-      <div class="l-rail__body">
-        <Content />
+  <div class="l-band">
+    <div class="l-page">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label u-tabular">{data.effectiveDate.getUTCFullYear()}</p>
+        <div class="l-rail__body">
+          <Content />
+        </div>
       </div>
     </div>
   </div>

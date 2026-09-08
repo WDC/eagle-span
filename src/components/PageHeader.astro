@@ -29,8 +29,8 @@ interface Props {
 const { mark, title, lede, crumbs = [], path } = Astro.props;
 ---
 
-<header class="l-page l-section pagehead">
-  <div class="l-rail">
+<header class="pagehead">
+  <div class="l-page l-rail pagehead__rail">
     <p class="l-rail__mark u-label u-tabular">{mark}</p>
     <div class="l-rail__body l-stack">
       <Breadcrumbs {crumbs} />
@@ -52,7 +52,40 @@ const { mark, title, lede, crumbs = [], path } = Astro.props;
 </header>
 
 <style>
-  .pagehead { padding-block-end: var(--s-5); }
+  /*
+   * The page header is a band now rather than a section on the page ground: on
+   * a thirteen-page site where every template is a rail and a heading, the top
+   * of the page was the one place with nothing to distinguish a service from an
+   * article from a privacy policy. The wash is the same one the homepage hero
+   * uses, at the same weight, so arriving on a subpage feels like the same
+   * site rather than like a different one.
+   */
+  .pagehead {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding-block: var(--s-6) var(--s-6);
+    background:
+      radial-gradient(100% 90% at 90% 0%, var(--c-wash-blue), transparent 62%),
+      var(--c-ground);
+    border-block-end: var(--hairline) solid var(--c-rule);
+  }
+
+  .pagehead::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      repeating-linear-gradient(to right, var(--c-rule) 0 1px, transparent 1px 5rem),
+      repeating-linear-gradient(to bottom, var(--c-rule) 0 1px, transparent 1px 5rem);
+    opacity: 0.26;
+    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 50%), transparent 82%);
+    pointer-events: none;
+  }
+
+  /* The rail's own rule would double the band's edge. */
+  .pagehead__rail { border-block-start: 0; padding-block-start: 0; }
 
   .pagehead__lede {
     font-size: var(--t-lead);

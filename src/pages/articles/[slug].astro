@@ -2,9 +2,11 @@
 import { render } from 'astro:content';
 
 import BaseLayout from '~/layouts/BaseLayout.astro';
+import Figure from '~/components/Figure.astro';
 import PageHeader from '~/components/PageHeader.astro';
 import { listArticles } from '~/lib/content.ts';
-import { crumbsFor, entryPath } from '~/lib/routes.ts';
+import { placeholderAt } from '~/lib/placeholders.ts';
+import { SECTIONS, crumbsFor, entryPath } from '~/lib/routes.ts';
 import { articleNode } from '~/lib/schema.ts';
 import { site } from '~/site.config.ts';
 
@@ -32,6 +34,8 @@ const path = entryPath('articles', entry.id);
 const { Content } = await render(entry);
 
 const crumbs = crumbsFor('articles', data.title, path);
+
+const heroAlt = data.heroAlt ?? `Placeholder — an illustration for “${data.title}”`;
 
 /*
  * A date is a reading: lining tabular figures, and an ISO `datetime` so the
@@ -68,6 +72,15 @@ const schema = [
   image={data.seo.image?.src}
   imageAlt={data.seo.image ? data.title : undefined}
 >
+  {/*
+    The reading progress bar. A scroll timeline drives it — no listener, no
+    script — and it exists only where that timeline does: `display: none` is the
+    resting state, so a browser without scroll-driven animations gets no bar
+    rather than a full green one it can never move. Articles only; a service
+    page is not long enough to need to be told how far down it you are.
+  */}
+  <div class="progress" aria-hidden="true"><span class="progress__bar"></span></div>
+
   <article>
     <PageHeader mark="Article" title={data.title} lede={data.summary} {crumbs} {path}>
       <p class="byline">
@@ -83,33 +96,41 @@ const schema = [
       </p>
     </PageHeader>
 
-    {
-      data.hero && (
-        <figure class="l-page hero">
-          <img
-            src={data.hero.src}
-            alt={data.heroAlt}
-            width={data.hero.width}
-            height={data.hero.height}
-            decoding="async"
-          />
-        </figure>
-      )
-    }
-
-    <div class="l-page l-section">
-      <div class="l-rail">
-        <p class="l-rail__mark u-label u-tabular">{published.getUTCFullYear()}</p>
-        <div class="l-rail__body">
-          <Content />
-
-          {
-            data.topics.length > 0 && (
-              <ul class="topics">
-                {data.topics.map((topic: string) => <li class="u-label">{topic}</li>)}
-              </ul>
-            )
+    <div class="l-band">
+      <div class="l-page">
+        <Figure
+          class="article__hero"
+          image={
+            data.hero
+              ? { src: data.hero.src, width: data.hero.width, height: data.hero.height }
+              : placeholderAt(`article-${entry.id}`, 'wide', heroAlt)
           }
+          alt={heroAlt}
+          ratio="21 / 9"
+          eager
+        />
+
+        <div class="l-rail article__body">
+          <p class="l-rail__mark u-label u-tabular">{published.getUTCFullYear()}</p>
+          <div class="l-rail__body">
+            <Content />
+
+            {
+              data.topics.length > 0 && (
+                <ul class="topics">
+                  {data.topics.map((topic: string) => (
+                    <li class="c-chip">{topic}</li>
+                  ))}
+                </ul>
+              )
+            }
+
+            <p class="article__back">
+              <a class="c-link" href={SECTIONS.articles.index!}>
+                All {SECTIONS.articles.label.toLowerCase()}<span class="c-arrow" aria-hidden="true">→</span>
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -125,19 +146,61 @@ const schema = [
     color: var(--c-ink-3);
   }
 
-  .byline__by { color: var(--c-ink-2); }
+  .byline__by { color: var(--c-ink-2); font-weight: 620; }
 
-  .hero { margin-block-start: var(--s-4); }
-  .hero img { width: 100%; }
+  .article__hero { margin-block-end: var(--s-6); }
+  .article__body { border-block-start: 0; padding-block-start: 0; }
 
   .topics {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--s-3);
+    gap: var(--s-2);
     list-style: none;
     padding: 0;
     margin-block-start: var(--s-6);
-    padding-block-start: var(--s-3);
+    padding-block-start: var(--s-4);
     border-block-start: var(--hairline) solid var(--c-rule);
+  }
+
+  .article__back { margin-block-start: var(--s-5); }
+
+  /* ---- Reading progress ------------------------------------------------ */
+
+  .progress {
+    display: none;
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 55;
+    block-size: 3px;
+    pointer-events: none;
+  }
+
+  .progress__bar {
+    display: block;
+    block-size: 100%;
+    background: var(--c-target);
+    transform-origin: 0 50%;
+  }
+
+  /*
+   * Opt in twice: the reader has not asked for less motion, and the browser can
+   * drive an animation from the scroll position. Without both, the element is
+   * not rendered at all — a progress bar that cannot progress is a green line
+   * across somebody's screen.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      .progress { display: block; }
+
+      .progress__bar {
+        animation: article-progress linear both;
+        animation-timeline: scroll(root block);
+      }
+    }
+  }
+
+  @keyframes article-progress {
+    from { transform: scaleX(0); }
   }
 </style>

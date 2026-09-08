@@ -5,10 +5,13 @@ import { render } from 'astro:content';
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import EntryList from '~/components/EntryList.astro';
 import Faqs from '~/components/Faqs.astro';
+import Figure from '~/components/Figure.astro';
 import PageHeader from '~/components/PageHeader.astro';
 import { resolveFaqs, resolveOfferings } from '~/lib/content.ts';
-import { SECTIONS, crumbsFor, entryPath } from '~/lib/routes.ts';
+import { placeholderAt } from '~/lib/placeholders.ts';
+import { SECTIONS, PAGES, crumbsFor, entryPath } from '~/lib/routes.ts';
 import { faqPageNode, serviceNode } from '~/lib/schema.ts';
+import { site } from '~/site.config.ts';
 
 /*
  * A service or a repair. One template, because they are one shape.
@@ -56,6 +59,15 @@ const related = (await resolveOfferings(collection, data.related)).filter((item)
 
 const crumbs = crumbsFor(collection, data.navLabel, path);
 
+/*
+ * The page's one photograph. An entry with a `hero` renders it; everything else
+ * gets a labelled placeholder, because a service page with a two-line summary
+ * and no picture is the shape the Phase 0 crawl found on the live site and the
+ * shape this redesign is meant to replace. src/lib/placeholders.ts is where all
+ * of them come from and where they all go.
+ */
+const heroAlt = data.heroAlt ?? `Placeholder — ${data.navLabel.toLowerCase()} at the Charlotte shop`;
+
 const schema = [
   serviceNode({
     path,
@@ -80,31 +92,70 @@ const schema = [
 >
   <PageHeader {mark} title={data.title} lede={data.summary} {crumbs} {path} />
 
-  {
-    data.hero && (
-      <figure class="l-page hero">
-        <img
-          src={data.hero.src}
-          alt={data.heroAlt}
-          width={data.hero.width}
-          height={data.hero.height}
-          decoding="async"
-        />
-      </figure>
-    )
-  }
-
   {/*
     The body is a `section`, not an `article`: a service page’s copy is not a
     self-contained composition that would make sense syndicated on its own.
     This is the decision Phase 1 left open — see NODE_COMPONENTS in
     src/lib/markdoc-tags.ts.
   */}
-  <section class="l-page l-section" aria-label="Details">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label">Detail</p>
-      <div class="l-rail__body">
-        <Content />
+  <section class="l-band" aria-label="Details">
+    <div class="l-page">
+      <div class="l-split">
+        <div>
+          <Figure
+            class="offering__hero"
+            image={
+              data.hero
+                ? { src: data.hero.src, width: data.hero.width, height: data.hero.height }
+                : placeholderAt(`${collection}-${entry.id}`, 'wide', heroAlt)
+            }
+            alt={heroAlt}
+            ratio="16 / 9"
+            eager
+          />
+
+          <div class="l-rail offering__body">
+            <p class="l-rail__mark u-label">Detail</p>
+            <div class="l-rail__body">
+              <Content />
+            </div>
+          </div>
+        </div>
+
+        {/*
+          The action panel, and the reason this template is a split: on a page
+          about a repair somebody is currently living through, the number has to
+          be beside the copy rather than under it. It sticks on wide screens and
+          is simply the next block down on narrow ones — see `.l-sticky`.
+        */}
+        <aside class="c-panel c-panel--raised l-sticky offering__aside" aria-label={`Book ${data.navLabel}`}>
+          <p class="c-kicker">
+            <span class="c-tick" aria-hidden="true" />
+            <span class="u-label">{SECTIONS[collection].label}</span>
+          </p>
+          <p class="offering__aside-title">{data.navLabel}</p>
+          <p class="offering__aside-note">{data.summary}</p>
+
+          <div class="offering__aside-actions">
+            <a class="c-btn c-btn--primary c-btn--block u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>
+              {site.phoneDisplay}
+            </a>
+            <a class="c-btn c-btn--ghost c-btn--block" href={PAGES.contact}>
+              Schedule service<span class="c-btn__mark" aria-hidden="true">→</span>
+            </a>
+          </div>
+
+          <dl class="offering__aside-facts">
+            <div>
+              <dt class="u-label">Hours</dt>
+              <dd class="u-tabular">{site.hours.days}, {site.hours.opens}–{site.hours.closes}</dd>
+            </div>
+            <div>
+              <dt class="u-label">Area</dt>
+              <dd>{site.areaServed}</dd>
+            </div>
+          </dl>
+        </aside>
       </div>
     </div>
   </section>
@@ -113,19 +164,21 @@ const schema = [
 
   {
     related.length > 0 && (
-      <section class="l-page l-section" aria-labelledby="related-heading">
-        <div class="l-rail">
-          <p class="l-rail__mark u-label">Also</p>
-          <div class="l-rail__body">
-            <h2 id="related-heading">Related {SECTIONS[collection].label.toLowerCase()}</h2>
-            <EntryList
-              numbered={false}
-              items={related.map((item) => ({
-                href: entryPath(collection, item.id),
-                title: item.data.navLabel,
-                summary: item.data.summary,
-              }))}
-            />
+      <section class="l-band l-band--ground-2" aria-labelledby="related-heading">
+        <div class="l-page">
+          <div class="l-rail">
+            <p class="l-rail__mark u-label">Also</p>
+            <div class="l-rail__body">
+              <h2 id="related-heading">Related {SECTIONS[collection].label.toLowerCase()}</h2>
+              <EntryList
+                numbered={false}
+                items={related.map((item) => ({
+                  href: entryPath(collection, item.id),
+                  title: item.data.navLabel,
+                  summary: item.data.summary,
+                }))}
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -134,6 +187,42 @@ const schema = [
 </BaseLayout>
 
 <style>
-  .hero { margin-block-start: var(--s-4); }
-  .hero img { width: 100%; }
+  .offering__hero { margin-block-end: var(--s-6); }
+
+  .offering__body { border-block-start: 0; padding-block-start: 0; }
+
+  .offering__aside-title {
+    font-size: var(--t-h3);
+    font-weight: 620;
+    letter-spacing: var(--ls-heading);
+    margin-block-start: var(--s-1);
+  }
+
+  .offering__aside-note {
+    color: var(--c-ink-2);
+    font-size: var(--t-fine);
+    margin-block-start: var(--s-2);
+  }
+
+  .offering__aside-actions {
+    display: grid;
+    gap: var(--s-2);
+    margin-block-start: var(--s-4);
+  }
+
+  .offering__aside-facts {
+    margin-block-start: var(--s-4);
+    font-size: var(--t-fine);
+  }
+
+  .offering__aside-facts > div {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: var(--s-2);
+    padding-block: var(--s-2);
+    border-block-start: var(--hairline) solid var(--c-rule);
+  }
+
+  .offering__aside-facts dt { padding-block-start: 0.2em; }
+  .offering__aside-facts dd { margin: 0; }
 </style>

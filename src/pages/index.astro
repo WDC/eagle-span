@@ -4,11 +4,14 @@ import { getEntries, render } from 'astro:content';
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import EntryList from '~/components/EntryList.astro';
 import Faqs from '~/components/Faqs.astro';
+import Figure from '~/components/Figure.astro';
 import LocationCard from '~/components/LocationCard.astro';
 import ThrustAngle from '~/components/ThrustAngle.astro';
 import { getSingleton, resolveFaqs, resolveOfferings } from '~/lib/content.ts';
+import { placeholderAt } from '~/lib/placeholders.ts';
 import { PAGES, SECTIONS, entryPath } from '~/lib/routes.ts';
 import { faqPageNode } from '~/lib/schema.ts';
+import { site } from '~/site.config.ts';
 
 /*
  * The homepage.
@@ -20,9 +23,14 @@ import { faqPageNode } from '~/lib/schema.ts';
  * No `Review` nodes either, and that is a decision rather than an omission.
  * Google's structured-data policy disallows review markup a business writes
  * about itself, and the crawl found the live homepage rendering the literal
- * placeholder "Position, Company name" over a reviewer's name — the exact
+ * placeholder “Position, Company name” over a reviewer's name — the exact
  * failure that markup would have published to a search result. Testimonials
  * render as what they are: quotes on a page, with real attribution or none.
+ *
+ * The page is built from bands rather than from one white column: hero, the
+ * numbers on a dark ground, the shop, the two catalogues, the quotes, the
+ * questions, where to find it, and one closing action. Each band is a change of
+ * ground, which is what gives a reader somewhere to stop.
  */
 const page = await getSingleton('home');
 const { Content } = await render(page);
@@ -37,6 +45,18 @@ const [services, repairs, testimonials, faqs] = await Promise.all([
 
 const path = PAGES.home;
 const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
+
+/*
+ * The shop strip. Three slots, named for what belongs in them rather than for
+ * what the CDN currently returns — see src/lib/placeholders.ts. These are the
+ * pictures the Phase 0 blocker is about (ClickUp 86bbw07ex), and they are the
+ * single largest visual difference between this page and a finished one.
+ */
+const shopShots = [
+  placeholderAt('home-shop-bays', 'card', 'Placeholder — the seven-bay shop floor with trucks on the racks'),
+  placeholderAt('home-shop-alignment', 'card', 'Placeholder — a tractor on the heavy-duty alignment rig'),
+  placeholderAt('home-shop-tech', 'card', 'Placeholder — a diesel technician working under a raised truck'),
+];
 ---
 
 <BaseLayout
@@ -49,39 +69,65 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
   image={page.data.seo.image?.src}
 >
   {/*
-    Everything below the hero takes `.u-reveal` — a native scroll-driven
+    The hero does not reveal on scroll: it is on screen at load, where a reveal
+    is either invisible or a delay on the first thing anybody reads. Everything
+    below it takes `.u-reveal` or `.u-reveal-item` — a native scroll-driven
     reveal, no observer and no script, so a section is visible whether or not
-    the animation ever runs. The hero itself does not: it is on screen at load,
-    where a reveal is either invisible or a delay on the first thing anybody
-    reads.
+    the animation ever runs.
   */}
-  <section class="l-page l-section" aria-label="Introduction">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label u-tabular">{hero.eyebrow}</p>
-      <div class="l-rail__body l-stack">
+  <section class="hero" aria-label="Introduction">
+    <div class="l-page hero__inner">
+      <div class="hero__copy l-stack">
+        <p class="hero__eyebrow u-label u-tabular">
+          <span class="c-tick" aria-hidden="true"></span>
+          {hero.eyebrow}
+        </p>
+
         <h1>{hero.heading}</h1>
         <p class="hero__lede">{hero.lede}</p>
 
-        {/*
-          The hero visual is the thrust-angle diagram, and a hero image
-          replaces it rather than stacking under it — two competing visuals is
-          not a hero. The Keystatic field says so where an editor will read it,
-          because setting a photograph here is how the one piece of motion on
-          the site would otherwise disappear without anyone deciding to remove
-          it.
-        */}
+        <div class="hero__actions">
+          <a class="c-btn c-btn--primary" href={`tel:${site.phoneE164}`}>
+            <span class="u-tabular u-nowrap">{site.phoneDisplay}</span>
+          </a>
+          <a class="c-btn c-btn--ghost" href={PAGES.contact}>
+            Schedule service<span class="c-arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        <ul class="hero__facts">
+          <li><span class="c-tick" aria-hidden="true"></span>{site.areaServed}</li>
+          <li>
+            <span class="c-tick" aria-hidden="true"></span>
+            <span class="u-tabular">{site.hours.days}, {site.hours.opens}–{site.hours.closes}</span>
+          </li>
+        </ul>
+      </div>
+
+      {/*
+        The hero visual is the thrust-angle diagram, and a hero image replaces
+        it rather than stacking under it — two competing visuals is not a hero.
+        The Keystatic field says so where an editor will read it, because
+        setting a photograph here is how the one piece of motion on the site
+        would otherwise disappear without anyone deciding to remove it.
+      */}
+      <div class="hero__visual">
         {
           hero.image ? (
-            <img
-              class="hero__image"
-              src={hero.image.src}
-              alt={hero.imageAlt}
-              width={hero.image.width}
-              height={hero.image.height}
-              decoding="async"
+            <Figure
+              image={{ src: hero.image.src, width: hero.image.width, height: hero.image.height }}
+              alt={hero.imageAlt ?? hero.heading}
+              ratio="4 / 3"
+              eager
             />
           ) : (
-            <ThrustAngle />
+            <div class="hero__instrument c-panel c-panel--raised">
+              <p class="c-kicker">
+                <span class="c-tick" aria-hidden="true"></span>
+                <span class="u-label">Live measurement</span>
+              </p>
+              <ThrustAngle />
+            </div>
           )
         }
       </div>
@@ -90,49 +136,139 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
   {
     stats.length > 0 && (
-      <section class="l-page u-reveal" aria-label="By the numbers">
-        <dl class="stats">
-          {stats.map((stat) => (
-            <div class="stats__cell">
-              <dt class="u-label">{stat.label}</dt>
-              {/* A reading, in the one place the design allows target green. */}
-              <dd class="stats__value u-reading">{stat.value}</dd>
-              {stat.note && <dd class="stats__note">{stat.note}</dd>}
-            </div>
-          ))}
-        </dl>
+      <section class="l-band l-band--tight l-band--deep t-deep u-reveal-band" aria-label="By the numbers">
+        <div class="l-page">
+          <dl class="stats">
+            {stats.map((stat) => (
+              <div class="stats__cell u-reveal-item">
+                <dt class="u-label">{stat.label}</dt>
+                {/* A reading, in the one place the design allows target green. */}
+                <dd class="stats__value u-reading">{stat.value}</dd>
+                {stat.note && <dd class="stats__note">{stat.note}</dd>}
+              </div>
+            ))}
+          </dl>
+        </div>
       </section>
     )
   }
 
-  <section class="l-page l-section u-reveal" aria-label="Overview">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label">Shop</p>
-      <div class="l-rail__body">
-        <Content />
+  <section class="l-band" aria-labelledby="home-shop">
+    <div class="l-page">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label">Shop</p>
+        <div class="l-rail__body">
+          <div class="l-split">
+            <div>
+              <h2 id="home-shop" class="u-visually-hidden">The shop</h2>
+              <Content />
+            </div>
+
+            {/*
+              The one panel a reader might act on from this section, and the
+              reason the copy has an aside at all: everything in it is read
+              from site.config, so it is the same number and the same hours as
+              the header, the footer, the JSON-LD and the Google listing.
+            */}
+            <aside class="c-panel c-panel--raised l-sticky" aria-label="Contact the shop">
+              <p class="c-kicker">
+                <span class="c-tick" aria-hidden="true"></span>
+                <span class="u-label">Talk to the shop</span>
+              </p>
+              <dl class="facts">
+                <div class="facts__row">
+                  <dt class="u-label">Phone</dt>
+                  <dd><a class="u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a></dd>
+                </div>
+                <div class="facts__row">
+                  <dt class="u-label">Hours</dt>
+                  <dd class="u-tabular">{site.hours.days}, {site.hours.opens}–{site.hours.closes}</dd>
+                </div>
+                <div class="facts__row">
+                  <dt class="u-label">Area</dt>
+                  <dd>{site.areaServed}</dd>
+                </div>
+              </dl>
+              <a class="c-btn c-btn--primary c-btn--block facts__cta" href={PAGES.contact}>
+                Schedule service<span class="c-btn__mark" aria-hidden="true">→</span>
+              </a>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/*
+    The shop, as photographs. Every one of these is a placeholder and says so —
+    the shoot is an open blocker, and the honest version of “heavy photography
+    in generous space” until it happens is a labelled empty slot rather than a
+    stock truck.
+  */}
+  <section class="l-band l-band--ground-2" aria-labelledby="home-inside">
+    <div class="l-page">
+      <h2 id="home-inside" class="section__head">Inside the shop</h2>
+      <p class="section__lede">
+        Seven bays, a heavy-duty alignment rack and the diagnostic equipment to go with them.
+      </p>
+
+      <div class="l-grid shots" style="--min: 15rem;">
+        {
+          shopShots.map((shot) => (
+            <Figure class="u-reveal-item" image={shot} alt={shot.alt} ratio="3 / 2" zoom />
+          ))
+        }
       </div>
     </div>
   </section>
 
   {
     services.length > 0 && (
-      <section class="l-page l-section u-reveal" aria-labelledby="home-services">
-        <div class="l-rail">
-          <p class="l-rail__mark u-label u-tabular">{String(services.length).padStart(2, '0')}</p>
-          <div class="l-rail__body">
-            <h2 id="home-services">{SECTIONS.services.label}</h2>
-            <EntryList
-              numbered={false}
-              items={services.map((entry) => ({
-                href: entryPath('services', entry.id),
-                title: entry.data.navLabel,
-                summary: entry.data.summary,
-              }))}
-            />
-            <p class="more">
-              <a href={SECTIONS.services.index!}>All {SECTIONS.services.label.toLowerCase()}</a>
-            </p>
+      <section class="l-band" aria-labelledby="home-services">
+        <div class="l-page">
+          <div class="section__top">
+            <div>
+              <p class="c-kicker">
+                <span class="c-tick" aria-hidden="true" />
+                <span class="u-label u-tabular">{String(services.length).padStart(2, '0')} services</span>
+              </p>
+              <h2 id="home-services" class="section__head">{SECTIONS.services.label}</h2>
+            </div>
+            <a class="c-link" href={SECTIONS.services.index!}>
+              All {SECTIONS.services.label.toLowerCase()}<span class="c-arrow" aria-hidden="true">→</span>
+            </a>
           </div>
+
+          {/*
+            The one card grid on the site, and it is here because these five are
+            the things a visitor is choosing between. An index of everything is
+            still a list of hairline rows — see the repairs band below.
+          */}
+          <ul class="l-grid cards" style="--min: 17rem;">
+            {services.map((entry) => (
+              <li class="c-panel c-panel--link cards__card u-reveal-item">
+                <Figure
+                  image={placeholderAt(
+                    `service-${entry.id}`,
+                    'card',
+                    `Placeholder — ${entry.data.navLabel.toLowerCase()} work in the shop`,
+                  )}
+                  alt={`Placeholder — ${entry.data.navLabel.toLowerCase()} work in the shop`}
+                  ratio="16 / 10"
+                  zoom
+                />
+                <h3 class="cards__title">
+                  <a class="c-panel__link" href={entryPath('services', entry.id)}>
+                    {entry.data.navLabel}
+                  </a>
+                </h3>
+                <p class="cards__summary">{entry.data.summary}</p>
+                <p class="cards__more u-label">
+                  Read more<span class="c-arrow" aria-hidden="true">→</span>
+                </p>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
     )
@@ -140,23 +276,29 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
   {
     repairs.length > 0 && (
-      <section class="l-page l-section u-reveal" aria-labelledby="home-repairs">
-        <div class="l-rail">
-          <p class="l-rail__mark u-label u-tabular">{String(repairs.length).padStart(2, '0')}</p>
-          <div class="l-rail__body">
-            <h2 id="home-repairs">{SECTIONS.repairs.label}</h2>
-            <EntryList
-              numbered={false}
-              items={repairs.map((entry) => ({
-                href: entryPath('repairs', entry.id),
-                title: entry.data.navLabel,
-                summary: entry.data.summary,
-              }))}
-            />
-            <p class="more">
-              <a href={SECTIONS.repairs.index!}>All {SECTIONS.repairs.label.toLowerCase()}</a>
-            </p>
+      <section class="l-band l-band--ground-2" aria-labelledby="home-repairs">
+        <div class="l-page">
+          <div class="section__top">
+            <div>
+              <p class="c-kicker">
+                <span class="c-tick" aria-hidden="true" />
+                <span class="u-label u-tabular">{String(repairs.length).padStart(2, '0')} repairs</span>
+              </p>
+              <h2 id="home-repairs" class="section__head">{SECTIONS.repairs.label}</h2>
+            </div>
+            <a class="c-link" href={SECTIONS.repairs.index!}>
+              All {SECTIONS.repairs.label.toLowerCase()}<span class="c-arrow" aria-hidden="true">→</span>
+            </a>
           </div>
+
+          <EntryList
+            numbered={false}
+            items={repairs.map((entry) => ({
+              href: entryPath('repairs', entry.id),
+              title: entry.data.navLabel,
+              summary: entry.data.summary,
+            }))}
+          />
         </div>
       </section>
     )
@@ -164,35 +306,37 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
   {
     testimonials.length > 0 && (
-      <section class="l-page l-section u-reveal" aria-labelledby="home-said">
-        <div class="l-rail">
-          <p class="l-rail__mark u-label">Said</p>
-          <div class="l-rail__body">
-            <h2 id="home-said" class="u-visually-hidden">
-              What customers say
-            </h2>
+      <section class="l-band l-band--wash" aria-labelledby="home-said">
+        <div class="l-page">
+          <p class="c-kicker">
+            <span class="c-tick" aria-hidden="true" />
+            <span class="u-label">Said</span>
+          </p>
+          <h2 id="home-said" class="section__head">What customers say</h2>
+
+          <ul class="l-grid quotes" style="--min: 18rem;">
             {testimonials.map((entry) => (
-              <figure class="quote">
-                <blockquote>
-                  <p>{entry.data.quote}</p>
-                </blockquote>
-                {/*
-                  Name, then role and company only when they exist. There is no
-                  placeholder to fall back to, which is the point: the live site
-                  printed “Position, Company name” because its template needed
-                  one.
-                */}
-                <figcaption class="quote__by">
-                  <span class="quote__name">{entry.data.name}</span>
-                  {(entry.data.role || entry.data.company) && (
-                    <span class="quote__role">
-                      {[entry.data.role, entry.data.company].filter(Boolean).join(', ')}
-                    </span>
-                  )}
-                </figcaption>
-              </figure>
+              <li class="c-panel u-reveal-item">
+                <figure class="c-quote">
+                  <blockquote>{entry.data.quote}</blockquote>
+                  {/*
+                    Name, then role and company only when they exist. There is no
+                    placeholder to fall back to, which is the point: the live site
+                    printed “Position, Company name” because its template needed
+                    one.
+                  */}
+                  <figcaption>
+                    <span class="quotes__name">{entry.data.name}</span>
+                    {(entry.data.role || entry.data.company) && (
+                      <span class="quotes__role">
+                        {[entry.data.role, entry.data.company].filter(Boolean).join(', ')}
+                      </span>
+                    )}
+                  </figcaption>
+                </figure>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </section>
     )
@@ -200,39 +344,190 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
   <Faqs items={faqs} />
 
-  <section class="l-page l-section u-reveal" aria-labelledby="home-where">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label">Where</p>
-      <div class="l-rail__body">
-        <h2 id="home-where">Find the shop</h2>
+  <section class="l-band l-band--ground-2" aria-labelledby="home-where">
+    <div class="l-page">
+      <p class="c-kicker">
+        <span class="c-tick" aria-hidden="true"></span>
+        <span class="u-label">Where</span>
+      </p>
+      <h2 id="home-where" class="section__head">Find the shop</h2>
+
+      <div class="where">
         <LocationCard />
+        <Figure
+          class="u-reveal-item"
+          image={placeholderAt('home-exterior', 'map', 'Placeholder — the shop exterior from the street')}
+          alt="Placeholder — the shop exterior from the street"
+          ratio="3 / 2"
+        />
+      </div>
+    </div>
+  </section>
+
+  <section class="l-band l-band--deep t-deep u-reveal-band" aria-labelledby="home-cta">
+    <div class="l-page cta-band">
+      <div class="cta-band__copy l-stack">
+        <p class="c-kicker">
+          <span class="c-tick" aria-hidden="true"></span>
+          <span class="u-label">Next</span>
+        </p>
+        <h2 id="home-cta">Truck down, or due for an alignment?</h2>
+        <p class="cta-band__lede">
+          Call the shop and talk to someone who works on these trucks, or send the details and we
+          will come back to you with a time.
+        </p>
+      </div>
+
+      <div class="cta-band__actions">
+        <a class="c-btn c-btn--primary cta-band__call" href={`tel:${site.phoneE164}`}>
+          <span class="u-tabular u-nowrap">{site.phoneDisplay}</span>
+        </a>
+        <a class="c-btn c-btn--ghost" href={PAGES.contact}>
+          Schedule service<span class="c-arrow" aria-hidden="true">→</span>
+        </a>
       </div>
     </div>
   </section>
 </BaseLayout>
 
 <style>
+  /* ---- Hero ------------------------------------------------------------ */
+
+  /*
+   * The one place on the site with a background that is not flat: a wash in the
+   * top corner and a drafting grid fading out under the copy. It is doing the
+   * job the photograph will eventually do — giving the first screen some depth
+   * — and it is drawn in two gradients rather than an image, so it costs
+   * nothing and cannot fail to load.
+   */
+  .hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding-block: var(--s-6) var(--s-7);
+    background:
+      radial-gradient(110% 70% at 88% 0%, var(--c-wash-blue), transparent 62%),
+      var(--c-ground);
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      repeating-linear-gradient(to right, var(--c-rule) 0 1px, transparent 1px 5rem),
+      repeating-linear-gradient(to bottom, var(--c-rule) 0 1px, transparent 1px 5rem);
+    opacity: 0.3;
+    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 55%), transparent 78%);
+    pointer-events: none;
+  }
+
+  .hero__inner {
+    display: grid;
+    gap: var(--s-6) var(--gutter);
+    align-items: center;
+  }
+
+  @media (width >= 62rem) {
+    .hero__inner { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+  }
+
+  .hero__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+  }
+
   .hero__lede {
     font-size: var(--t-lead);
     color: var(--c-ink-2);
+    max-width: 46ch;
   }
 
-  .hero__image { width: 100%; margin-block-start: var(--s-5); }
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    margin-block-start: var(--s-4);
+  }
 
-  /*
-   * The measurement rail, as figures: lining tabular, aligned down a column,
-   * hairline rules and no boxes.
-   */
+  .hero__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2) var(--s-5);
+    list-style: none;
+    padding: 0;
+    margin-block-start: var(--s-4);
+    padding-block-start: var(--s-3);
+    border-block-start: var(--hairline) solid var(--c-rule);
+    font-size: var(--t-fine);
+    color: var(--c-ink-3);
+  }
+
+  .hero__facts li {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+  }
+
+  /* The diagram, in a frame, so it reads as an instrument rather than as clip art. */
+  .hero__instrument {
+    background: var(--c-ground);
+    padding: var(--pad-panel);
+  }
+
+  .hero__instrument :global(.ta) { margin-block-start: var(--s-2); }
+  .hero__instrument :global(.ta__svg) { max-width: none; }
+  .hero__instrument :global(.ta__readout) { max-width: none; }
+
+  /* ---- Section furniture ------------------------------------------------ */
+
+  .section__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--s-3) var(--s-5);
+    margin-block-end: var(--s-5);
+  }
+
+  .section__head { margin-block-end: var(--s-2); }
+
+  .section__lede {
+    color: var(--c-ink-2);
+    max-width: var(--measure);
+    margin-block-end: var(--s-5);
+  }
+
+  /* ---- The numbers ------------------------------------------------------ */
+
   .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-    gap: 0 var(--gutter);
-    margin-block-start: var(--s-5);
+    gap: var(--s-4) var(--gutter);
   }
 
+  /*
+   * A hairline over each figure with a short green segment on it — the tick
+   * that means “measured, in spec”, at the size of a mark. A full-width 2px
+   * green rule across four columns was the reserved colour being used as
+   * decoration, which is the one thing the tokens say it is not for.
+   */
   .stats__cell {
-    padding-block: var(--s-3);
+    position: relative;
+    padding-block-start: var(--s-3);
     border-block-start: var(--hairline) solid var(--c-rule);
+  }
+
+  .stats__cell::before {
+    content: '';
+    position: absolute;
+    inset-block-start: calc(var(--hairline) * -1);
+    inset-inline-start: 0;
+    inline-size: var(--s-4);
+    block-size: 2px;
+    background: var(--c-target);
   }
 
   .stats__value {
@@ -247,25 +542,106 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
     color: var(--c-ink-3);
   }
 
-  .more { margin-block-start: var(--s-4); font-size: var(--t-fine); }
+  /* ---- Cards ------------------------------------------------------------ */
 
-  .quote {
-    margin: 0;
-    padding-block: var(--s-4);
-    border-block-start: var(--hairline) solid var(--c-rule);
-    max-width: var(--measure);
+  .cards { list-style: none; padding: 0; margin: 0; }
+
+  .cards__card {
+    display: grid;
+    align-content: start;
+    gap: var(--s-2);
+    padding: var(--s-3);
   }
 
-  .quote blockquote p { font-size: var(--t-lead); }
-
-  .quote__by {
+  .cards__title {
+    font-size: var(--t-h3);
     margin-block-start: var(--s-2);
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-1) var(--s-2);
+  }
+
+  .cards__title a { text-decoration: none; }
+
+  .cards__summary {
+    color: var(--c-ink-2);
     font-size: var(--t-fine);
   }
 
-  .quote__name { font-weight: 620; }
-  .quote__role { color: var(--c-ink-3); }
+  .cards__more {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    margin-block-start: var(--s-1);
+    color: var(--c-ink-3);
+  }
+
+  .c-panel--link:hover .cards__more { color: var(--c-ink); }
+
+  /* ---- Quotes ----------------------------------------------------------- */
+
+  .quotes { list-style: none; padding: 0; margin: 0; }
+  .quotes__name { font-weight: 620; }
+  .quotes__role { color: var(--c-ink-3); }
+
+  /* ---- Where ------------------------------------------------------------ */
+
+  .where {
+    display: grid;
+    gap: var(--s-5) var(--gutter);
+  }
+
+  @media (width >= 52rem) {
+    .where { grid-template-columns: minmax(0, 22rem) minmax(0, 1fr); align-items: start; }
+  }
+
+  /* ---- Facts panel ------------------------------------------------------ */
+
+  .facts { display: grid; }
+
+  .facts__row {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    gap: var(--s-2);
+    padding-block: var(--s-2);
+    border-block-start: var(--hairline) solid var(--c-rule);
+    font-size: var(--t-fine);
+  }
+
+  .facts__row dt { padding-block-start: 0.2em; }
+  .facts__row dd { margin: 0; }
+  .facts__cta { margin-block-start: var(--s-4); }
+
+  /* ---- Closing band ----------------------------------------------------- */
+
+  .cta-band {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--s-5) var(--gutter);
+  }
+
+  .cta-band__lede {
+    color: var(--c-ink-2);
+    max-width: 52ch;
+  }
+
+  .cta-band__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+
+  /*
+   * Inverted: on the dark ground the solid button has to be the light one, or
+   * the primary action is a near-black rectangle on a near-black band.
+   */
+  .cta-band__call {
+    background: var(--c-on-deep);
+    border-color: var(--c-on-deep);
+    color: var(--c-deep);
+  }
+
+  .cta-band__call:hover {
+    background: var(--c-ground-3);
+    border-color: var(--c-ground-3);
+  }
 </style>

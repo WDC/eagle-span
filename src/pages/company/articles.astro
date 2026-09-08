@@ -40,24 +40,28 @@ const dateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZ
     {crumbs}
   />
 
-  <section class="l-page" aria-label="Articles">
-    <EntryList
-      numbered={false}
-      empty="No articles are published yet."
-      items={entries.map((entry) => ({
-        href: entryPath('articles', entry.id),
-        title: entry.data.title,
-        summary: entry.data.summary,
-        meta: dateFormat.format(entry.data.updatedAt ?? entry.data.publishedAt),
-      }))}
-    />
+  <section class="l-band" aria-label="Articles">
+    <div class="l-page">
+      <EntryList
+        numbered={false}
+        empty="No articles are published yet."
+        items={entries.map((entry) => ({
+          href: entryPath('articles', entry.id),
+          title: entry.data.title,
+          summary: entry.data.summary,
+          meta: dateFormat.format(entry.data.updatedAt ?? entry.data.publishedAt),
+        }))}
+      />
+    </div>
   </section>
 
-  <section class="l-page l-section" aria-label="About the archive">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label">Note</p>
-      <div class="l-rail__body">
-        <Content />
+  <section class="l-band l-band--ground-2" aria-label="About the archive">
+    <div class="l-page">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label">Note</p>
+        <div class="l-rail__body">
+          <Content />
+        </div>
       </div>
     </div>
   </section>

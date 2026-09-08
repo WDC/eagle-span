@@ -48,30 +48,32 @@ const EMPLOYMENT_LABEL = {
 
   {
     page.data.openings.length > 0 && (
-      <section class="l-page" aria-labelledby="openings-heading">
-        <h2 id="openings-heading" class="u-visually-hidden">
-          Current openings
-        </h2>
-        <ul class="openings">
-          {page.data.openings.map((opening) => (
-            <li class="l-rail openings__row">
-              <p class="l-rail__mark u-label">{EMPLOYMENT_LABEL[opening.employmentType]}</p>
-              <div class="l-rail__body">
+      <section class="l-band" aria-labelledby="openings-heading">
+        <div class="l-page">
+          <h2 id="openings-heading" class="u-visually-hidden">
+            Current openings
+          </h2>
+          <ul class="l-grid openings" style="--min: 18rem;">
+            {page.data.openings.map((opening) => (
+              <li class="c-panel openings__row u-reveal-item">
+                <p class="c-chip">{EMPLOYMENT_LABEL[opening.employmentType]}</p>
                 <h3 class="openings__role">{opening.role}</h3>
                 <p class="openings__summary">{opening.summary}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
     )
   }
 
-  <div class="l-page l-section">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label">Note</p>
-      <div class="l-rail__body">
-        <Content />
+  <div class="l-band l-band--ground-2">
+    <div class="l-page">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label">Note</p>
+        <div class="l-rail__body">
+          <Content />
+        </div>
       </div>
     </div>
   </div>
@@ -79,7 +81,8 @@ const EMPLOYMENT_LABEL = {
 
 <style>
   .openings { list-style: none; padding: 0; margin: 0; }
-  .openings__row { padding-block: var(--s-4); }
+  .openings__row { display: grid; align-content: start; gap: var(--s-2); }
+  .openings__row .c-chip { justify-self: start; }
   .openings__role { font-size: var(--t-h3); }
-  .openings__summary { margin-block-start: var(--s-2); color: var(--c-ink-2); }
+  .openings__summary { color: var(--c-ink-2); font-size: var(--t-fine); }
 </style>
