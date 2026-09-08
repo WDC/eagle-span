@@ -2,8 +2,10 @@
 import { render } from 'astro:content';
 
 import BaseLayout from '~/layouts/BaseLayout.astro';
+import Figure from '~/components/Figure.astro';
 import PageHeader from '~/components/PageHeader.astro';
 import { getSingleton } from '~/lib/content.ts';
+import { placeholderAt } from '~/lib/placeholders.ts';
 import { PAGES, pageCrumbs } from '~/lib/routes.ts';
 
 /*
@@ -15,6 +17,12 @@ const { Content } = await render(page);
 
 const path = PAGES.about;
 const crumbs = pageCrumbs('About', path);
+
+/* The shop, its people and its equipment — the shoot that is still a blocker. */
+const shots = [
+  placeholderAt('about-exterior', 'card', 'Placeholder — the shop building and yard from the street'),
+  placeholderAt('about-team', 'card', 'Placeholder — the technicians on the shop floor'),
+];
 ---
 
 <BaseLayout
@@ -29,12 +37,24 @@ const crumbs = pageCrumbs('About', path);
 >
   <PageHeader mark="About" title={page.data.title} lede={page.data.lede} {crumbs} />
 
-  <div class="l-page l-section">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label">Shop</p>
-      <div class="l-rail__body">
-        <Content />
+  <div class="l-band">
+    <div class="l-page">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label">Shop</p>
+        <div class="l-rail__body">
+          <div class="l-split">
+            <Content />
+
+            <div class="about__shots">
+              {shots.map((shot) => <Figure image={shot} alt={shot.alt} ratio="4 / 3" class="u-reveal-item" />)}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </BaseLayout>
+
+<style>
+  .about__shots { display: grid; gap: var(--s-3); }
+</style>

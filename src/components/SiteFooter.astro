@@ -12,35 +12,50 @@ import { site } from '~/site.config.ts';
  * found missing — and it is why the list here is built from the collections
  * rather than written out.
  *
+ * It runs on the dark ground, which is the second and last inversion on the
+ * site. That is deliberate: an inverted footer is the oldest way to say the
+ * page has ended, and on a site whose sections are all white it is the thing
+ * that stops the last band from reading as one more section.
+ *
  * The hours link goes to `site.mapsUrl`. On the live homepage the same link
  * points at AES Truck Repair in Springfield, Missouri (Phase 0 defect 2). There
  * is exactly one Maps URL in this codebase and it is the shop's.
  */
 const settings = await getSingleton('settings');
-const { social, footerNote } = settings.data;
+const { social, footerNote, cta } = settings.data;
 
 const [services, repairs] = await Promise.all([listOfferings('services'), listOfferings('repairs')]);
 const year = new Date().getFullYear();
 ---
 
-<footer class="footer">
+<footer class="footer t-deep">
   <div class="l-page footer__inner">
-    <div class="footer__nap l-stack">
-      <p class="u-label">Eagle Span</p>
-      <p class="footer__name">{site.name}</p>
+    <div class="footer__nap">
+      <p class="footer__brand">{site.name}</p>
       <address class="footer__address">
         {site.address.street}<br />
         {site.address.locality}, {site.address.region} <span class="u-tabular">{site.address.postalCode}</span>
       </address>
-      <p>
-        <a class="u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a>
-      </p>
-      <p class="u-tabular">{site.hours.days}, {site.hours.opens}–{site.hours.closes}</p>
-      <p>
-        <a href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
+
+      <dl class="footer__facts">
+        <div class="footer__fact">
+          <dt class="u-label">Phone</dt>
+          <dd><a class="footer__phone u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a></dd>
+        </div>
+        <div class="footer__fact">
+          <dt class="u-label">Hours</dt>
+          <dd class="u-tabular">{site.hours.days}, {site.hours.opens}–{site.hours.closes}</dd>
+        </div>
+      </dl>
+
+      <div class="footer__actions">
+        <a class="c-btn c-btn--primary footer__cta" href={cta.href}>
+          {cta.label}<span class="c-btn__mark" aria-hidden="true">→</span>
+        </a>
+        <a class="c-btn c-btn--ghost" href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
           Directions<span class="u-visually-hidden"> (opens in a new tab)</span>
         </a>
-      </p>
+      </div>
     </div>
 
     <nav class="footer__col" aria-label="Services">
@@ -90,20 +105,77 @@ const year = new Date().getFullYear();
 
 <style>
   .footer {
-    border-block-start: var(--hairline) solid var(--c-rule);
     margin-block-start: var(--s-8);
-    padding-block: var(--s-6) var(--s-5);
-    background: var(--c-ground-2);
+    padding-block: var(--s-7) var(--s-5);
   }
 
   .footer__inner {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-    gap: var(--s-5) var(--gutter);
+    gap: var(--s-6) var(--gutter);
   }
 
-  .footer__name { font-weight: 620; }
-  .footer__address { font-style: normal; line-height: var(--lh-body); }
+  /* The NAP column is the wide one: it carries the address and the actions. */
+  @media (width >= 64rem) {
+    .footer__inner { grid-template-columns: 1.4fr repeat(3, 1fr); }
+  }
+
+  .footer__brand {
+    font-weight: 620;
+    font-size: var(--t-h3);
+    letter-spacing: var(--ls-heading);
+  }
+
+  .footer__address {
+    font-style: normal;
+    line-height: var(--lh-body);
+    color: var(--c-ink-2);
+    margin-block-start: var(--s-2);
+  }
+
+  .footer__facts { margin-block-start: var(--s-4); }
+
+  .footer__fact {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    gap: var(--s-2);
+    padding-block: var(--s-2);
+    border-block-start: var(--hairline) solid var(--c-rule);
+    font-size: var(--t-fine);
+  }
+
+  .footer__fact dt { padding-block-start: 0.2em; }
+  .footer__fact dd { margin: 0; }
+
+  .footer__phone {
+    font-weight: 620;
+    font-size: var(--t-body);
+    text-decoration: none;
+  }
+
+  .footer__phone:hover { color: var(--c-target-ink); }
+
+  .footer__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    margin-block-start: var(--s-4);
+  }
+
+  /*
+   * On the dark ground the solid button has to be the light one — see the same
+   * inversion on the homepage closing band.
+   */
+  .footer__cta {
+    background: var(--c-on-deep);
+    border-color: var(--c-on-deep);
+    color: var(--c-deep);
+  }
+
+  .footer__cta:hover {
+    background: var(--c-on-deep-2);
+    border-color: var(--c-on-deep-2);
+  }
 
   .footer__col ul {
     list-style: none;
@@ -113,6 +185,14 @@ const year = new Date().getFullYear();
     gap: var(--s-1);
     font-size: var(--t-fine);
   }
+
+  .footer__col a {
+    text-decoration: none;
+    color: var(--c-ink-2);
+    transition: color var(--d-fast) var(--e-out);
+  }
+
+  .footer__col a:hover { color: var(--c-ink); text-decoration: underline; }
 
   .footer__legal {
     display: flex;

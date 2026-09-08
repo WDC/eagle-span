@@ -42,7 +42,15 @@ const { crumbs } = Astro.props;
   .crumbs {
     font-size: var(--t-fine);
     color: var(--c-ink-3);
+    margin-block-end: var(--s-1);
   }
+
+  .crumbs a {
+    text-decoration-color: var(--c-rule-strong);
+    transition: text-decoration-color var(--d-fast) var(--e-out);
+  }
+
+  .crumbs a:hover { text-decoration-color: var(--c-ink); }
 
   .crumbs__list {
     display: flex;
@@ -60,7 +68,11 @@ const { crumbs } = Astro.props;
   .crumbs__item + .crumbs__item::before {
     content: '/';
     margin-inline-end: var(--s-2);
-    color: var(--c-ink-4);
+    /*
+     * --c-ink-4 is 3.31:1 and is annotated NOT text in the tokens; a separator
+     * is small text like any other. verify-tokens.mjs now fails on it.
+     */
+    color: var(--c-ink-3);
   }
 
   .crumbs__item [aria-current='page'] { color: var(--c-ink-2); }

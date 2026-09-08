@@ -3,10 +3,13 @@ import { render } from 'astro:content';
 
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Faqs from '~/components/Faqs.astro';
+import Figure from '~/components/Figure.astro';
 import PageHeader from '~/components/PageHeader.astro';
 import { getEntries } from 'astro:content';
 import { getSingleton, resolveFaqs } from '~/lib/content.ts';
+import { placeholderAt } from '~/lib/placeholders.ts';
 import { PAGES, pageCrumbs } from '~/lib/routes.ts';
+import { site } from '~/site.config.ts';
 import { faqPageNode } from '~/lib/schema.ts';
 
 /*
@@ -43,39 +46,71 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 >
   <PageHeader mark="Fleet" title={page.data.title} lede={page.data.lede} {crumbs} />
 
-  <div class="l-page l-section">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label">Programme</p>
-      <div class="l-rail__body">
-        <Content />
+  <div class="l-band">
+    <div class="l-page">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label">Programme</p>
+        <div class="l-rail__body">
+          <div class="l-split">
+            <Content />
+
+            <aside class="c-panel c-panel--raised l-sticky" aria-label="Fleet enquiries">
+              <p class="c-kicker">
+                <span class="c-tick" aria-hidden="true" />
+                <span class="u-label">Fleet desk</span>
+              </p>
+              <p class="fleet__aside-note">
+                Scheduling a yard of trucks, or setting up billing? Call the shop and ask for the
+                fleet side.
+              </p>
+              <div class="fleet__aside-actions">
+                <a class="c-btn c-btn--primary c-btn--block u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>
+                  {site.phoneDisplay}
+                </a>
+                <a class="c-btn c-btn--ghost c-btn--block" href={PAGES.contact}>
+                  Schedule service<span class="c-btn__mark" aria-hidden="true">→</span>
+                </a>
+              </div>
+            </aside>
+          </div>
+
+          <Figure
+            class="fleet__shot"
+            image={placeholderAt('fleet-yard', 'wide', 'Placeholder — a customer fleet parked in the yard')}
+            alt="Placeholder — a customer fleet parked in the yard"
+            ratio="21 / 9"
+          />
+        </div>
       </div>
     </div>
   </div>
 
   {
     accounts.length > 0 && (
-      <section class="l-page l-section" aria-labelledby="accounts-heading">
-        <div class="l-rail">
-          <p class="l-rail__mark u-label">Billing</p>
-          <div class="l-rail__body">
-            <h2 id="accounts-heading">National accounts</h2>
-            <ul class="accounts">
-              {accounts.map((account) => (
-                <li class="accounts__row">
-                  <p class="accounts__name">
-                    {account.data.url ? (
-                      <a href={account.data.url} target="_blank" rel="noopener noreferrer">
-                        {account.data.name}
-                        <span class="u-visually-hidden"> (opens in a new tab)</span>
-                      </a>
-                    ) : (
-                      account.data.name
-                    )}
-                  </p>
-                  {account.data.note && <p class="accounts__note">{account.data.note}</p>}
-                </li>
-              ))}
-            </ul>
+      <section class="l-band l-band--ground-2" aria-labelledby="accounts-heading">
+        <div class="l-page">
+          <div class="l-rail">
+            <p class="l-rail__mark u-label">Billing</p>
+            <div class="l-rail__body">
+              <h2 id="accounts-heading">National accounts</h2>
+              <ul class="l-grid accounts" style="--min: 14rem;">
+                {accounts.map((account) => (
+                  <li class="c-panel accounts__row u-reveal-item">
+                    <p class="accounts__name">
+                      {account.data.url ? (
+                        <a href={account.data.url} target="_blank" rel="noopener noreferrer">
+                          {account.data.name}
+                          <span class="u-visually-hidden"> (opens in a new tab)</span>
+                        </a>
+                      ) : (
+                        account.data.name
+                      )}
+                    </p>
+                    {account.data.note && <p class="accounts__note">{account.data.note}</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -86,18 +121,32 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 </BaseLayout>
 
 <style>
+  .fleet__aside-note {
+    color: var(--c-ink-2);
+    font-size: var(--t-fine);
+    margin-block-start: var(--s-1);
+  }
+
+  .fleet__aside-actions {
+    display: grid;
+    gap: var(--s-2);
+    margin-block-start: var(--s-4);
+  }
+
+  .fleet__shot { margin-block-start: var(--s-6); }
+
   .accounts {
     list-style: none;
     padding: 0;
     margin-block-start: var(--s-4);
-    max-width: var(--measure-tight);
   }
 
-  .accounts__row {
-    padding-block: var(--s-2);
-    border-block-start: var(--hairline) solid var(--c-rule);
-  }
-
+  .accounts__row { padding: var(--s-3); }
   .accounts__name { font-weight: 620; }
-  .accounts__note { color: var(--c-ink-3); font-size: var(--t-fine); }
+
+  .accounts__note {
+    color: var(--c-ink-3);
+    font-size: var(--t-fine);
+    margin-block-start: var(--s-1);
+  }
 </style>

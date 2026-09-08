@@ -16,31 +16,22 @@ const { label, href } = Astro.props;
 ---
 
 <p class="cta">
-  <a class="cta__link" href={href}>{label}<span class="cta__mark" aria-hidden="true">→</span></a>
+  <a class="c-btn c-btn--primary" href={href}>
+    {label}<span class="c-btn__mark" aria-hidden="true">→</span>
+  </a>
 </p>
 
 <style>
+  /*
+   * One action, on its own rule, and it is a button now rather than a bolded
+   * link: inside a thousand words of prose the difference between “this is a
+   * link” and “this is the thing to do next” has to be visible at a glance,
+   * and weight alone was not doing it.
+   */
   .cta {
     margin-block: var(--s-5);
-    padding-block-start: var(--s-3);
+    padding-block-start: var(--s-4);
     border-block-start: var(--hairline) solid var(--c-rule);
     max-width: var(--measure);
   }
-
-  .cta__link {
-    font-weight: 620;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: baseline;
-    gap: var(--s-1);
-  }
-
-  .cta__link:hover { text-decoration: underline; }
-
-  .cta__mark {
-    color: var(--c-target-ink);
-    transition: transform var(--d-fast) var(--e-out);
-  }
-
-  .cta__link:hover .cta__mark { transform: translateX(0.15em); }
 </style>

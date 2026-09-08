@@ -44,12 +44,16 @@ const pad = (n: number) => String(n).padStart(2, '0');
       {items.map((item, i) => (
         <li class="entries__row l-rail">
           <p class="l-rail__mark u-label u-tabular">{numbered ? pad(i + 1) : item.meta}</p>
-          <div class="l-rail__body">
-            <h2 class="entries__title" transition:name={transitionName(item.href)}>
-              <a href={item.href}>{item.title}</a>
-            </h2>
-            <p class="entries__summary">{item.summary}</p>
-            {numbered && item.meta && <p class="entries__meta u-label u-tabular">{item.meta}</p>}
+          <div class="l-rail__body entries__body">
+            <div>
+              <h2 class="entries__title" transition:name={transitionName(item.href)}>
+                <a href={item.href}>{item.title}</a>
+              </h2>
+              <p class="entries__summary">{item.summary}</p>
+              {numbered && item.meta && <p class="entries__meta u-label u-tabular">{item.meta}</p>}
+            </div>
+            {/* Decoration: the row’s affordance, not a second link to the same page. */}
+            <span class="entries__arrow c-arrow" aria-hidden="true">→</span>
           </div>
         </li>
       ))}
@@ -64,7 +68,38 @@ const pad = (n: number) => String(n).padStart(2, '0');
     margin: 0;
   }
 
-  .entries__row { padding-block: var(--s-4); }
+  /*
+   * A row, not a card, and it stays a row: the index is a list of rules, which
+   * is the shape that lets fourteen entries be scanned. What it gained is an
+   * affordance — the ground shifts and the mark moves under the pointer, so a
+   * row reads as something you can open rather than as a paragraph that happens
+   * to start with a link.
+   *
+   * The padding is negative-margined out to the gutter so the hover ground
+   * reaches past the text without the rule moving with it.
+   */
+  .entries__row {
+    padding-block: var(--s-4);
+    padding-inline: var(--s-3);
+    margin-inline: calc(var(--s-3) * -1);
+    border-radius: var(--r-2);
+    transition: background-color var(--d-base) var(--e-out);
+  }
+
+  /*
+   * The hover ground is a variable because it depends on the band: on the page
+   * ground the row darkens, and on a band that already has that ground it
+   * lifts to white instead. The bands set `--row-hover` in global.css, which is
+   * the only way a scoped component style can be told what it is sitting on.
+   */
+  .entries__row:hover { background: var(--row-hover, var(--c-ground-2)); }
+
+  .entries__body {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: var(--s-3);
+  }
 
   .entries__title {
     font-size: var(--t-h3);
@@ -82,9 +117,25 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
   .entries__meta { margin-block-start: var(--s-2); }
 
+  .entries__arrow {
+    flex: none;
+    color: var(--c-ink-3);
+    font-size: var(--t-lead);
+    line-height: 1.1;
+  }
+
+  .entries__row:hover .entries__arrow {
+    color: var(--c-target-ink);
+    transform: translateX(0.2em);
+  }
+
   .entries__empty {
     padding-block: var(--s-4);
     border-block-start: var(--hairline) solid var(--c-rule);
     color: var(--c-ink-3);
+  }
+
+  @media (width < 40rem) {
+    .entries__arrow { display: none; }
   }
 </style>

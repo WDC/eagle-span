@@ -137,6 +137,13 @@ in the markup would make it differ from `site.config.ts` and from the JSON-LD.
 
 ## Colour
 
+> **Superseded in part.** The palette below is still the base, but the page is
+> no longer built only from it: see
+> [`docs/phase-4.5-visual-polish.md`](phase-4.5-visual-polish.md) for the dark
+> band, the four washes, the caution amber and the panel rules that replaced
+> "nothing sits in a bordered box". The mark-versus-ink split described here is
+> unchanged and now covers three colours rather than one.
+
 Alignment-target green is now **two** tokens, because the sampled green is
 3.37:1 on white — fine as a mark, a WCAG AA failure the moment it is text.
 

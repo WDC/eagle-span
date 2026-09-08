@@ -1,35 +1,43 @@
 ---
+import Figure from '~/components/Figure.astro';
+import { placeholderAt } from '~/lib/placeholders.ts';
 import { site, staticMap } from '~/site.config.ts';
 
 /*
  * Where the shop is, as data.
  *
  * There is no Google Maps iframe here and there never will be — see
- * `staticMap` in src/site.config.ts. Until the image exists the block is the
- * NAP and a link to the listing, which is what a reader actually needs; the
- * image is an improvement on that, not a prerequisite for it.
+ * `staticMap` in src/site.config.ts. The block is the NAP and a link to the
+ * listing, which is what a reader actually needs; the picture is an
+ * improvement on that, not a prerequisite for it.
+ *
+ * Until the static map exists the slot holds a labelled placeholder rather
+ * than nothing. An empty rectangle beside an address reads as a broken embed;
+ * a picture that says “Placeholder” reads as a picture that has not arrived,
+ * which is the truth.
  *
  * Every string below renders from site.config, so this is one more place the
  * phone number cannot pick up a sixth format.
  */
+const mapAlt = 'Placeholder — a map of the shop location on Beasley Lane';
 ---
 
-<div class="location">
-  {
-    staticMap && (
-      <a class="location__map" href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
-        <img
-          src={staticMap.src}
+<div class="location c-panel">
+  <a class="location__map" href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
+    {
+      staticMap ? (
+        <Figure
+          image={{ src: staticMap.src, width: staticMap.width, height: staticMap.height }}
           alt={staticMap.alt}
-          width={staticMap.width}
-          height={staticMap.height}
-          loading="lazy"
-          decoding="async"
+          ratio="3 / 2"
+          zoom
         />
-        <span class="u-visually-hidden"> (opens Google Maps in a new tab)</span>
-      </a>
-    )
-  }
+      ) : (
+        <Figure image={placeholderAt('location-map', 'map', mapAlt)} alt={mapAlt} ratio="3 / 2" zoom />
+      )
+    }
+    <span class="u-visually-hidden">Open the shop location in Google Maps (opens in a new tab)</span>
+  </a>
 
   <dl class="location__spec">
     <div class="location__row">
@@ -55,35 +63,36 @@ import { site, staticMap } from '~/site.config.ts';
     </div>
   </dl>
 
-  <p class="location__link">
-    <a href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
-      Open in Google Maps<span class="u-visually-hidden"> (opens in a new tab)</span>
-    </a>
-  </p>
+  <a class="c-btn c-btn--ghost c-btn--block location__cta" href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
+    Open in Google Maps<span class="c-btn__mark" aria-hidden="true">→</span>
+    <span class="u-visually-hidden"> (opens in a new tab)</span>
+  </a>
 </div>
 
 <style>
-  .location { max-width: var(--measure-tight); }
-
-  .location__map {
-    display: block;
-    margin-block-end: var(--s-4);
-    border: var(--hairline) solid var(--c-rule);
+  .location {
+    max-width: 26rem;
+    display: grid;
+    gap: var(--s-3);
+    padding: var(--s-3);
   }
+
+  .location__map { display: block; text-decoration: none; }
 
   .location__row {
     display: grid;
-    grid-template-columns: 7rem minmax(0, 1fr);
+    grid-template-columns: 6.5rem minmax(0, 1fr);
     gap: var(--s-3);
     padding-block: var(--s-2);
     border-block-start: var(--hairline) solid var(--c-rule);
+    font-size: var(--t-fine);
   }
 
   .location__row dt { padding-block-start: 0.2em; }
   .location__row dd { margin: 0; }
   .location__row address { font-style: normal; line-height: var(--lh-body); }
 
-  .location__link { margin-block-start: var(--s-3); font-size: var(--t-fine); }
+  .location__cta { margin-block-start: var(--s-1); }
 
   @media (width < 32rem) {
     .location__row { grid-template-columns: minmax(0, 1fr); gap: var(--s-0); }

@@ -2,11 +2,18 @@
 /*
  * `{% callout %}`. A note, a caution or a safety warning.
  *
- * A hairline axis and a label, not a tinted box with a rounded corner: the
- * design runs on alignment marks and rules, and a callout is the place a card
- * grid usually creeps back in. The tone is carried by the label and by the
- * weight of the rule, so it survives being printed and being read by someone
- * who cannot see the colour.
+ * Phase 2 drew this as a hairline axis and a label, on the rule that nothing on
+ * the site sits in a tinted box. In prose that turned out to be too quiet to do
+ * its job: a safety warning that looks exactly like a block quote is a safety
+ * warning the reader scrolls past, and on a page about air brakes that is the
+ * one paragraph that must not be missed.
+ *
+ * So it is a panel now, and the tone is carried three ways over: the label, the
+ * weight and colour of the axis, and the wash. Three, because each one fails
+ * somewhere — the wash is gone in print and in forced-colours mode, the colour
+ * is gone for a reader who cannot distinguish it, and the label is the only one
+ * that survives everything. The colour is never the sole carrier of the tone,
+ * which is the WCAG rule and also just how a shop marks a hazard.
  */
 interface Props {
   tone?: 'note' | 'caution' | 'safety' | undefined;
@@ -34,21 +41,41 @@ const label = TONE_LABEL[tone];
 <style>
   .callout {
     margin-block: var(--s-5);
-    padding-inline-start: var(--s-4);
-    border-inline-start: var(--hairline) solid var(--c-rule-strong);
+    padding: var(--s-3) var(--pad-panel);
+    border-inline-start: 3px solid var(--c-rule-strong);
+    border-radius: 0 var(--r-2) var(--r-2) 0;
+    background: var(--c-ground-2);
     max-width: var(--measure);
   }
 
-  /* Caution and safety earn a heavier axis; neither earns a fill. */
-  .callout[data-tone='caution'] { border-inline-start-width: 2px; }
-
-  .callout[data-tone='safety'] {
-    border-inline-start-width: 3px;
-    border-inline-start-color: var(--c-red);
+  .callout[data-tone='note'] {
+    border-inline-start-color: var(--c-blue);
+    background: var(--c-wash-blue);
   }
 
-  .callout__label { margin-block-end: var(--s-1); }
+  .callout[data-tone='caution'] {
+    border-inline-start-color: var(--c-amber);
+    background: var(--c-wash-amber);
+  }
+
+  .callout[data-tone='safety'] {
+    border-inline-start-color: var(--c-red);
+    background: var(--c-wash-red);
+  }
+
+  .callout__label {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    margin-block-end: var(--s-1);
+  }
+
+  .callout[data-tone='note'] .callout__label { color: var(--c-blue-deep); }
+  .callout[data-tone='caution'] .callout__label { color: var(--c-amber-ink); }
   .callout[data-tone='safety'] .callout__label { color: var(--c-red); }
 
   .callout__title { font-weight: 620; }
+
+  /* Inside a callout the measure is the panel, not the page. */
+  .callout :global(p) { max-width: none; }
 </style>

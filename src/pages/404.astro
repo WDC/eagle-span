@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import { SECTIONS } from '~/lib/routes.ts';
+import { site } from '~/site.config.ts';
 
 /*
  * The brand suffix and the robots meta are BaseLayout's, so this passes the
@@ -14,18 +15,36 @@ const description = 'That page has moved or no longer exists. Every URL from the
 
 {/* `image={null}`: no OG card. Nothing links to a 404 and nobody shares one. */}
 <BaseLayout {title} {description} path="/404" noindex image={null}>
-  <section class="l-page l-section">
-    <div class="l-rail">
-      <p class="l-rail__mark u-label u-tabular">404</p>
-      <div class="l-rail__body l-stack">
-        <h1>That page has moved</h1>
-        <p>
-          Every URL from the previous site redirects to its replacement. If you reached this page
-          from a link, start from the <a href="/">homepage</a>, the
-          <a href={SECTIONS.services.index!}>services</a> or the
-          <a href={SECTIONS.repairs.index!}>repairs</a> and we will get you there.
-        </p>
+  <section class="l-band">
+    <div class="l-page">
+      <div class="l-rail">
+        <p class="l-rail__mark u-label u-tabular">404</p>
+        <div class="l-rail__body l-stack">
+          <h1>That page has moved</h1>
+          <p>
+            Every URL from the previous site redirects to its replacement. If you reached this page
+            from a link, start from one of these and we will get you there.
+          </p>
+
+          <div class="notfound__actions">
+            <a class="c-btn c-btn--primary" href="/">Homepage</a>
+            <a class="c-btn c-btn--ghost" href={SECTIONS.services.index!}>{SECTIONS.services.label}</a>
+            <a class="c-btn c-btn--ghost" href={SECTIONS.repairs.index!}>{SECTIONS.repairs.label}</a>
+            <a class="c-btn c-btn--ghost u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>
+              {site.phoneDisplay}
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  .notfound__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    margin-block-start: var(--s-4);
+  }
+</style>

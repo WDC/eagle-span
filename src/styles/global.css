@@ -330,3 +330,690 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: fr
     animation: none;
   }
 }
+
+/* ---- The inverted theme ------------------------------------------------ */
+
+/*
+ * `.t-deep` is a dark band, and it works by remapping the ground and ink
+ * tokens rather than by restyling anything.
+ *
+ * That is the whole trick and the reason it is safe: `EntryList`, `Faqs`,
+ * `LocationCard` and every rule in this file already read `--c-ink-2`,
+ * `--c-rule` and `--c-ground-2` rather than a literal colour, so a component
+ * dropped inside a band inverts without knowing the band exists. Nothing has a
+ * dark variant to keep in sync, and there is no second stylesheet where the
+ * inverted version of a component quietly drifts from the light one.
+ *
+ * Every value below is a token whose contrast against the dark grounds is
+ * checked: `scripts/verify-tokens.mjs` parses this block, resolves the mapping
+ * and runs the same AA check it runs on the light palette. A remap that puts an
+ * unreadable ink on the dark ground fails the build in the same way a bad token
+ * does.
+ */
+.t-deep {
+  --c-ground: var(--c-deep);
+  --c-ground-2: var(--c-deep-2);
+  --c-ground-3: var(--c-deep-3);
+
+  --c-ink: var(--c-on-deep);
+  --c-ink-2: var(--c-on-deep-2);
+  --c-ink-3: var(--c-on-deep-3);
+  /* Still not text: the dark twin of a mark colour is a mark colour. */
+  --c-ink-4: var(--c-deep-rule-strong);
+
+  --c-rule: var(--c-deep-rule);
+  --c-rule-strong: var(--c-deep-rule-strong);
+
+  --c-blue: var(--c-blue-on-deep);
+  --c-blue-deep: var(--c-blue-on-deep);
+  --c-red: var(--c-red-on-deep);
+  --c-target-ink: var(--c-target-on-deep);
+  --c-amber-ink: var(--c-amber-on-deep);
+
+  /*
+   * A wash is a tint of white and there is no such thing on a near-black
+   * ground, so the four of them collapse to one raised surface. The hue that
+   * distinguished a callout survives in its rule and its label, which is where
+   * the tone was carried in the first place.
+   */
+  --c-wash-blue: var(--c-deep-2);
+  --c-wash-green: var(--c-deep-2);
+  --c-wash-amber: var(--c-deep-2);
+  --c-wash-red: var(--c-deep-2);
+
+  /* A shadow on near-black is a darker near-black, not a grey. */
+  --shadow-1: none;
+  --shadow-2: var(--shadow-deep);
+  --shadow-3: var(--shadow-deep);
+
+  --focus-ring: 2px solid var(--c-blue-on-deep);
+
+  background: var(--c-ground);
+  color: var(--c-ink);
+}
+
+/* ---- Bands ------------------------------------------------------------- */
+
+/*
+ * A band is a full-bleed horizontal section with a ground of its own. It is the
+ * unit the page is now built from: the reader gets an edge to hang orientation
+ * on every screen or two rather than one continuous white column.
+ *
+ * The rhythm is deliberate and not decorative — white for reading, `--ground-2`
+ * for lists and indexes, a wash for anything advisory, and the dark band
+ * reserved for the two moments the page is making a claim rather than
+ * explaining one: the shop's own numbers, and the closing call to action.
+ */
+.l-band {
+  padding-block: var(--s-7);
+}
+
+.l-band--tight { padding-block: var(--s-6); }
+
+.l-band--ground-2 {
+  background: var(--c-ground-2);
+  border-block: var(--hairline) solid var(--c-rule);
+}
+
+.l-band--wash {
+  background: var(--c-wash-blue);
+  border-block: var(--hairline) solid var(--c-rule);
+}
+
+/* The dark band takes the theme above; `.t-deep` paints the ground itself. */
+.l-band--deep { border-block: 0; }
+
+/*
+ * Two columns where the second is genuinely secondary — a sticky action panel
+ * beside a service page, the location beside the contact copy. It collapses to
+ * one column early, because a 22rem aside next to a 68ch measure needs more
+ * width than a laptop in a split window has.
+ */
+.l-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-6) var(--gutter);
+}
+
+/*
+ * 68rem, not 62: at the narrower breakpoint the prose column came out around
+ * 44 characters on a 1024px screen, which is where a heading starts wrapping
+ * every second word. One column for longer is the better trade.
+ */
+@media (width >= 68rem) {
+  .l-split {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+    align-items: start;
+  }
+}
+
+/*
+ * The one grid on the site. `--min` is set by the caller so a three-across of
+ * service panels and a two-across of quotes are the same rule with a different
+ * floor rather than two grids.
+ */
+.l-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--min, 16rem)), 1fr));
+  gap: var(--s-4);
+}
+
+/*
+ * Sticky, and only where there is room for it to be. Below the split's
+ * breakpoint the aside is simply the next thing down the page, and a sticky
+ * element in a single column is a thing that covers the content under it.
+ */
+@media (width >= 68rem) {
+  .l-sticky {
+    position: sticky;
+    /* Clears the masthead, which is sticky too. */
+    inset-block-start: calc(var(--h-masthead) + var(--s-3));
+  }
+}
+
+/* ---- Panels ------------------------------------------------------------ */
+
+/*
+ * A panel is a surface with an edge — the one place this design allows a box,
+ * and it took a real argument to add. Phase 2's rule was "nothing sits in a
+ * bordered box", which produced a page where a service, a quote, a warning and
+ * a paragraph of prose were typographically identical: the reader had no way to
+ * tell a thing they could act on from a thing they could only read.
+ *
+ * So the rule is narrower now rather than abandoned. A panel means *this is a
+ * discrete object* — one service, one quote, one advisory. Prose is never in
+ * one, an index row is still a rule rather than a card, and the hairline is the
+ * same hairline the rest of the site draws with.
+ */
+.c-panel {
+  padding: var(--pad-panel);
+  background: var(--c-ground);
+  border: var(--hairline) solid var(--c-rule);
+  border-radius: var(--r-3);
+}
+
+.c-panel--flush { background: transparent; }
+.c-panel--raised { box-shadow: var(--shadow-1); }
+
+/*
+ * An interactive panel: the whole surface responds, and the link inside it
+ * covers the panel through a pseudo-element rather than the panel being wrapped
+ * in an `<a>`. The accessible name stays the title alone — a block-level link
+ * around a heading, a summary and a figure is announced as one enormous run-on
+ * label, which is the usual cost of a clickable card.
+ */
+.c-panel--link {
+  position: relative;
+  transition:
+    border-color var(--d-base) var(--e-out),
+    box-shadow var(--d-base) var(--e-out),
+    transform var(--d-base) var(--e-out);
+}
+
+.c-panel--link:hover {
+  border-color: var(--c-rule-strong);
+  box-shadow: var(--shadow-2);
+  transform: translateY(calc(var(--s-0) * -0.5));
+}
+
+.c-panel__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+/* The panel carries the focus ring, because the link's own box is the title. */
+.c-panel--link:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.c-panel__link:focus-visible { outline: none; }
+
+/* ---- Buttons ----------------------------------------------------------- */
+
+/*
+ * Three, and no more: one solid action, one outlined alternative, one that is
+ * a link wearing a mark. The site's actions are "call" and "schedule service",
+ * and a fourth button style would exist only to give a fifth action somewhere
+ * to live.
+ */
+.c-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  padding: 0.72em 1.2em;
+  border: var(--hairline) solid transparent;
+  border-radius: var(--r-2);
+  font-size: var(--t-fine);
+  font-weight: 620;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--d-fast) var(--e-out),
+    border-color var(--d-fast) var(--e-out),
+    color var(--d-fast) var(--e-out),
+    box-shadow var(--d-fast) var(--e-out),
+    transform var(--d-fast) var(--e-out);
+}
+
+.c-btn:hover { transform: translateY(calc(var(--s-0) * -0.25)); }
+.c-btn:active { transform: translateY(0); }
+
+.c-btn--primary {
+  background: var(--c-ink);
+  color: var(--c-ground);
+  border-color: var(--c-ink);
+}
+
+.c-btn--primary:hover {
+  background: var(--c-ink-2);
+  box-shadow: var(--shadow-2);
+}
+
+.c-btn--ghost {
+  background: transparent;
+  color: var(--c-ink);
+  border-color: var(--c-rule-strong);
+}
+
+.c-btn--ghost:hover {
+  border-color: var(--c-ink);
+  background: var(--c-ground-2);
+}
+
+.c-btn--block { width: 100%; }
+
+/*
+ * The mark moves on hover, and that is the whole of the animation budget for a
+ * link. It is a transition rather than an animation on purpose: it runs from
+ * and to real resting values, so there is nothing to hold and nothing to
+ * restore, and `--d-fast` collapses to 1ms under reduced motion.
+ */
+.c-btn__mark,
+.c-arrow {
+  transition: transform var(--d-fast) var(--e-out);
+}
+
+:is(.c-btn, .c-link):hover :is(.c-btn__mark, .c-arrow) { transform: translateX(0.18em); }
+
+.c-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s-1);
+  font-weight: 620;
+  font-size: var(--t-fine);
+  text-decoration: none;
+  color: var(--c-ink);
+  border-block-end: 2px solid var(--c-target);
+  padding-block-end: 0.12em;
+  transition: border-color var(--d-fast) var(--e-out), color var(--d-fast) var(--e-out);
+}
+
+.c-link:hover { border-block-end-color: var(--c-ink); }
+
+/* ---- Chips and marks --------------------------------------------------- */
+
+.c-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: 0.32em 0.7em;
+  border: var(--hairline) solid var(--c-rule);
+  border-radius: var(--r-pill);
+  background: var(--c-ground);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--c-ink-3);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: 'case' 1;
+  white-space: nowrap;
+}
+
+.c-chip a { text-decoration: none; }
+
+/*
+ * The in-spec tick: alignment-target green as a 0.5rem square, the same mark
+ * the hero readout uses. It is the site's one ornament, and it is reserved the
+ * way the colour is — it means "measured and in spec", not "bullet point".
+ */
+.c-tick {
+  display: inline-block;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  background: var(--c-target);
+  flex: none;
+}
+
+.c-tick--rule {
+  inline-size: var(--s-4);
+  block-size: 2px;
+}
+
+/*
+ * A kicker: the rail label with the tick in front of it, for the places a
+ * section heading has no rail to sit in — inside a band, inside a panel.
+ */
+.c-kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-block-end: var(--s-3);
+}
+
+/* ---- Lists ------------------------------------------------------------- */
+
+/* ---- Accordion --------------------------------------------------------- */
+
+/*
+ * A disclosure, built on `<details>`: no script, keyboard operable by the
+ * browser, and — the part that matters for the FAQ — the answer is in the
+ * document whether it is open or shut. Google's rule for `FAQPage` is that the
+ * answer be present and reachable on the page, not that it be unfolded, and
+ * `verify:jsonld` checks the rendered text of every answer against the graph
+ * either way. What it is not is a tab strip: tabs need JavaScript to be
+ * anything other than a broken accordion, and a page that costs 5.8 KB of
+ * script is not spending it on hiding text.
+ */
+.c-accordion {
+  border-block-start: var(--hairline) solid var(--c-rule);
+}
+
+.c-accordion__item {
+  border-block-end: var(--hairline) solid var(--c-rule);
+}
+
+.c-accordion__summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding-block: var(--s-3);
+  font-weight: 620;
+  cursor: pointer;
+  list-style: none;
+  transition: color var(--d-fast) var(--e-out);
+}
+
+/* The default disclosure triangle, in both dialects. */
+.c-accordion__summary::-webkit-details-marker { display: none; }
+.c-accordion__summary::marker { content: ''; }
+
+.c-accordion__summary:hover { color: var(--c-ink-3); }
+
+/*
+ * The marker is a plus that becomes a minus: one element, one rotation, and it
+ * still reads as "expandable" with the stylesheet half-loaded.
+ */
+.c-accordion__mark {
+  position: relative;
+  inline-size: 0.85rem;
+  block-size: 0.85rem;
+  flex: none;
+  margin-inline-start: auto;
+  align-self: center;
+  color: var(--c-ink-3);
+}
+
+.c-accordion__mark::before,
+.c-accordion__mark::after {
+  content: '';
+  position: absolute;
+  background: currentcolor;
+  inset-block-start: 50%;
+  inset-inline-start: 0;
+  inline-size: 100%;
+  block-size: 2px;
+  transition: transform var(--d-base) var(--e-out), opacity var(--d-base) var(--e-out);
+}
+
+.c-accordion__mark::after { transform: rotate(90deg); }
+
+.c-accordion__item[open] .c-accordion__mark::after {
+  transform: rotate(0deg);
+  opacity: 0;
+}
+
+.c-accordion__body {
+  padding-block-end: var(--s-4);
+  color: var(--c-ink-2);
+  max-width: var(--measure);
+}
+
+/* ---- Figures ----------------------------------------------------------- */
+
+/*
+ * An image, framed. `object-fit: cover` against an explicit aspect ratio is
+ * what keeps a photograph from deciding the height of a section — and it is
+ * what makes the CLS budget survivable while every image on the site is a
+ * placeholder of whatever proportions the CDN feels like returning.
+ */
+.c-figure {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--r-3);
+  background: var(--c-ground-3);
+}
+
+.c-figure img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  aspect-ratio: var(--ratio, 3 / 2);
+  /*
+   * A photograph on a white page needs an edge or it floats; a hairline over
+   * the image rather than a border on the box, so the radius stays clean.
+   */
+  box-shadow: inset 0 0 0 1px rgb(10 10 11 / 8%);
+}
+
+.c-figure--zoom img {
+  transition: transform var(--d-slow) var(--e-out);
+}
+
+:is(.c-panel--link:hover, .c-figure--zoom:hover) .c-figure--zoom img,
+.c-panel--link:hover .c-figure img {
+  transform: scale(1.03);
+}
+
+.c-figure__caption {
+  margin-block-start: var(--s-2);
+  font-size: var(--t-fine);
+  color: var(--c-ink-3);
+}
+
+/* ---- Quotes ------------------------------------------------------------ */
+
+.c-quote {
+  margin: 0;
+  display: grid;
+  gap: var(--s-3);
+}
+
+.c-quote blockquote {
+  margin: 0;
+  font-size: var(--t-lead);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.c-quote figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-2);
+  font-size: var(--t-fine);
+  padding-block-start: var(--s-2);
+  border-block-start: var(--hairline) solid var(--c-rule);
+}
+
+/* ---- Prose, extended --------------------------------------------------- */
+
+/*
+ * Markdown gives every list the same dot and every heading the same weight.
+ * These four rules give the rendered body the same vocabulary the templates
+ * have — a marker that means something, a heading with a mark on it, and a
+ * table that reads as a table rather than as three columns of drifting text.
+ */
+/*
+ * The marker, and only the marker. An earlier version of this rule made the
+ * list item a two-column grid with the bullet as the first cell, which is a
+ * neat way to control the hang — and which silently destroys any list item
+ * carrying more than one block. Markdown produces exactly that for a loose
+ * list (`<li><p>…</p><p>…</p></li>`), so on the longest article on the site
+ * every second paragraph was laid into the 1.1rem bullet column, one character
+ * per line, for about four thousand pixels.
+ *
+ * `::marker` does the same job with no layout involved: a square in
+ * alignment-target ink for an unordered list, lining tabular figures for an
+ * ordered one, and a list item that can hold whatever it likes.
+ */
+.prose > ul {
+  list-style: square;
+  padding-inline-start: var(--s-4);
+}
+
+.prose > ul > li::marker { color: var(--c-target-ink); }
+
+.prose > ol { padding-inline-start: var(--s-4); }
+.prose > ol > li::marker { font-variant-numeric: lining-nums tabular-nums; color: var(--c-ink-3); }
+
+.prose > :is(h2, h3) {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+
+.prose > h2::before {
+  content: '';
+  inline-size: var(--s-3);
+  block-size: 2px;
+  background: var(--c-target);
+  flex: none;
+  transform: translateY(-0.28em);
+}
+
+.prose > blockquote {
+  border-inline-start-width: 2px;
+  border-inline-start-color: var(--c-target);
+  font-size: var(--t-lead);
+  line-height: 1.45;
+}
+
+.prose > .table-wrap,
+.prose > table { overflow-x: auto; }
+
+.prose table { width: 100%; }
+
+.prose thead th {
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--c-ink-3);
+}
+
+.prose tbody tr:hover { background: var(--c-ground-2); }
+
+.prose a:not([class]) {
+  text-decoration-color: var(--c-rule-strong);
+  transition: text-decoration-color var(--d-fast) var(--e-out);
+}
+
+.prose a:not([class]):hover { text-decoration-color: var(--c-ink); }
+
+/* ---- Motion, extended -------------------------------------------------- */
+
+/*
+ * The reveal, per element rather than per section. Phase 2 put `.u-reveal` on
+ * whole sections; with panels and cards the useful unit is smaller, and a row
+ * of three that arrives together reads as one object arriving rather than as
+ * three separate ones.
+ *
+ * Same construction as the original and for the same reason: a native view
+ * timeline, no observer, no script, no class toggled on scroll. The element is
+ * visible in its own right and the animation is added only where the timeline
+ * is supported and the reader has not asked for less. `both` fill is correct
+ * here because on a view timeline the fill holds the state across the rest of
+ * the range rather than freezing a moment in time — see scripts/verify-motion.mjs,
+ * which allows a fill exactly where `animation-timeline` is set.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .u-reveal-item {
+      animation: u-reveal-item linear both;
+      animation-timeline: view();
+      animation-range: entry 2% entry 42%;
+    }
+
+    /*
+     * A band that inverts is worth a moment more than a paragraph: the range is
+     * longer so the ground arrives before the text does.
+     */
+    .u-reveal-band {
+      animation: u-reveal-band linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+  }
+}
+
+@keyframes u-reveal-item {
+  from {
+    opacity: 0;
+    transform: translateY(var(--s-3));
+  }
+}
+
+@keyframes u-reveal-band {
+  from { opacity: 0.35; }
+}
+
+/*
+ * Everything that hangs off the sticky masthead: an in-page anchor has to stop
+ * below it rather than under it, and `scroll-margin-block-start` is the whole
+ * fix. Set on the elements an anchor can land on rather than on `:target`, so
+ * it is right for a click, a fragment in a shared URL and a browser restoring
+ * a scroll position alike.
+ */
+:is(h1, h2, h3, section, article)[id] {
+  scroll-margin-block-start: calc(var(--h-masthead) + var(--s-4));
+}
+
+/* ---- The narrow-viewport action bar ------------------------------------ */
+
+/*
+ * Fixed to the bottom of a phone screen: the number and the one action, always
+ * reachable. The markup is in BaseLayout; the rules are here because the bar
+ * has to reserve its own height at the end of the document, and that is a
+ * declaration on `body`.
+ *
+ * It exists because of what the site is. Somebody reading a page about air
+ * brake failure at the side of a road is not going to scroll back up, and the
+ * sticky masthead drops its button below 64rem to make room for the brand.
+ */
+.actionbar {
+  position: fixed;
+  inset-block-end: 0;
+  inset-inline: 0;
+  z-index: 60;
+  display: none;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--gutter);
+  /* Clears the home indicator on a phone that has one. */
+  padding-block-end: calc(var(--s-2) + env(safe-area-inset-bottom, 0px));
+  background: var(--c-ground);
+  border-block-start: var(--hairline) solid var(--c-rule);
+  box-shadow: var(--shadow-3);
+}
+
+.actionbar__item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 2.75rem;
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-2);
+  border: var(--hairline) solid var(--c-ink);
+  font-size: var(--t-fine);
+  font-weight: 620;
+  text-decoration: none;
+}
+
+.actionbar__call {
+  background: var(--c-ground);
+  color: var(--c-ink);
+}
+
+.actionbar__book {
+  background: var(--c-ink);
+  color: var(--c-ground);
+}
+
+@media (width < 48rem) {
+  .actionbar { display: flex; }
+
+  /*
+   * The bar is fixed, so the last thing in the document would otherwise sit
+   * under it. This is the height of the bar and nothing else.
+   */
+  body { padding-block-end: calc(4.25rem + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Printing a page should not print a bar of links that cannot be pressed. */
+@media print {
+  .actionbar,
+  .u-skip-link { display: none; }
+}
+
+/*
+ * The index row's hover ground, set by the band it sits in. `EntryList` styles
+ * are scoped to the component and cannot see what is behind them, so the band
+ * says: darken against the page ground, lift against its own.
+ */
+.l-band--ground-2,
+.l-band--wash { --row-hover: var(--c-ground); }
