@@ -155,8 +155,26 @@ const { collection, entries, compact = false, current } = Astro.props;
    * On a card with a photograph the tile straddles the edge between the two, so
    * the picture and the text read as one object rather than as a picture with a
    * caption under it.
+   *
+   * `position` and `z-index` are what make the straddle actually happen.
+   * `.c-figure` is positioned (it has to be — it clips the photograph and hangs
+   * the placeholder badge off its corner), and a positioned box paints over a
+   * static one whatever the source order says, so the picture was painting over
+   * the top of the tile the negative margin had just pulled under it. The tile
+   * lost its top edge everywhere; on a narrow screen, where `--pad-panel` is at
+   * its smallest and the overlap is therefore at its largest, it lost a third
+   * of itself and read as a broken graphic rather than as a mark.
+   *
+   * `pointer-events: none` keeps the card whole once the tile is above the
+   * stacking order: the click target for the whole surface is the pseudo-element
+   * on `.c-panel__link`, which sits at `z-index: auto`, so a raised tile would
+   * otherwise punch a 2.5rem dead spot through it. The tile is `aria-hidden`
+   * decoration and has nothing of its own to click.
    */
   .cardgrid:not(.cardgrid--compact) .card__icon {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
     margin-block-start: calc(var(--s-5) * -1);
     border: var(--hairline) solid var(--c-rule);
     background: var(--c-ground);
