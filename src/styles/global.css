@@ -912,9 +912,24 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: fr
     /*
      * A band that inverts is worth a moment more than a paragraph: the range is
      * longer so the ground arrives before the text does.
+     *
+     * `forwards` rather than `both`, which is not the same trade as the one
+     * above. This band's first frame is 0.35 rather than 0, so `backwards` fill
+     * left every band that had not been scrolled to yet holding a legible but
+     * washed-out state — text at 1.7:1 through 2.2:1, all of it below AA. That
+     * is invisible to a reader, who only ever sees the band once it is entering
+     * and already on its way to 1, and plain to anything that reads the page
+     * without scrolling: axe audits the homepage at rest and failed the whole
+     * closing CTA, five nodes, on contrast. Dropping the backwards half rests
+     * the band at its final frame and leaves the reveal itself untouched —
+     * measured across the entry range, 0.35 → 1 exactly as before.
+     *
+     * `.u-reveal-item` keeps `both` because its first frame is opacity 0: it
+     * carries no contrast to fail, and backwards fill is what stops an item
+     * from showing before its own reveal begins.
      */
     .u-reveal-band {
-      animation: u-reveal-band linear both;
+      animation: u-reveal-band linear forwards;
       animation-timeline: view();
       animation-range: entry 0% entry 35%;
     }
