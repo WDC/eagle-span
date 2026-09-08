@@ -20,7 +20,7 @@
  * Paths and tags come from the same modules the two configs read, so this
  * cannot drift from what it is checking.
  */
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 
@@ -92,7 +92,41 @@ for (const name of Object.keys(LOCATIONS)) {
   }
 }
 
-/* 3. Nothing under src/content is read by nobody. */
+/*
+ * 3. No image on the site is missing its alt text.
+ *
+ * A routed entry gets this from `withHeroAlt` in the content config. A page
+ * singleton cannot: refining its schema turns it into a `ZodEffects`, and
+ * Astro then types the whole collection as `Record<string, any>` — see the
+ * comment on `pageBase`. So the pairing is checked here, textually, across
+ * every content file at once. That is a weaker check than a schema, and it is
+ * the only one available that does not cost the templates their types.
+ *
+ * Both spellings are covered: `hero:`/`heroAlt:` at the top level of a routed
+ * entry or a page, and the homepage's nested `image:`/`imageAlt:` under
+ * `hero:`. An image without alt text was the one accessibility regression the
+ * Phase 0 audit said this migration must not ship.
+ */
+const frontmatterOf = (text) => {
+  if (!text.startsWith('---\n')) return '';
+  const end = text.indexOf('\n---', 3);
+  return end === -1 ? '' : text.slice(4, end);
+};
+
+for (const found of walk(resolve(root, CONTENT_DIR))) {
+  if (extname(found) !== '.mdoc') continue;
+  const front = frontmatterOf(readFileSync(found, 'utf8'));
+  const where = relative(root, found);
+
+  if (/^hero:[ \t]*\S/m.test(front) && !/^heroAlt:[ \t]*\S/m.test(front)) {
+    fail(`${where}: hero is set and heroAlt is not. Every image on this site carries alt text.`);
+  }
+  if (/^[ \t]+image:[ \t]*\S/m.test(front) && !/^[ \t]+imageAlt:[ \t]*\S/m.test(front)) {
+    fail(`${where}: hero.image is set and hero.imageAlt is not. Every image on this site carries alt text.`);
+  }
+}
+
+/* 4. Nothing under src/content is read by nobody. */
 for (const found of walk(resolve(root, CONTENT_DIR))) {
   if (claimed.has(found) || NOT_CONTENT.has(extname(found))) continue;
   fail(`${relative(root, found)} is not read by any collection. A leftover from a rename?`);

@@ -23,10 +23,12 @@
  *      replacing them is deleting this file and following the type errors —
  *      not grepping fourteen templates for a CDN hostname.
  *
- * Two gates know about this. `lighthouse-budget.json` carries a temporary
- * third-party request allowance (it is 0 in the design and must go back to 0
- * with the real assets), and the CI link check skips the CDN rather than
- * hammering it with thirty requests a run.
+ * The real assets landed, so the allowance went back with them:
+ * `lighthouse-budget.json` is at `third-party: 0` again, which is the value the
+ * design always specified. Nothing on the built site requests this CDN — every
+ * entry and every page names its own photograph — and the budget now says so.
+ * The CI link check still skips the origin rather than hammering it, because
+ * these fallbacks are still reachable from a new entry that has no image yet.
  */
 
 /** The one external origin this site talks to, and only while these ship. */

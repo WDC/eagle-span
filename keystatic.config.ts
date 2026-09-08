@@ -143,6 +143,7 @@ function indexPage(name: 'servicesIndex' | 'repairsIndex' | 'articlesIndex', lab
     schema: {
       title: fields.text({ label: 'Title', description: `The H1 at ${at}.`, validation: { length: { min: 1 } } }),
       lede: fields.text({ label: 'Lede', multiline: true, validation: { length: { min: 1, max: 320 } } }),
+      ...heroFields(),
       seo: seoField(),
       content: contentField(),
     },
@@ -492,6 +493,7 @@ export default config({
       schema: {
         title: fields.text({ label: 'Title', validation: { length: { min: 1 } } }),
         lede: fields.text({ label: 'Lede', multiline: true, validation: { length: { min: 1, max: 320 } } }),
+        ...heroFields(),
         seo: seoField(),
         content: contentField(),
       },
@@ -505,6 +507,7 @@ export default config({
       schema: {
         title: fields.text({ label: 'Title', validation: { length: { min: 1 } } }),
         lede: fields.text({ label: 'Lede', multiline: true, validation: { length: { min: 1, max: 320 } } }),
+        ...heroFields(),
         /*
          * The phone number, address and hours are deliberately absent. They come
          * from src/site.config.ts, which verify:jsonld gates against the Google
@@ -535,6 +538,7 @@ export default config({
       schema: {
         title: fields.text({ label: 'Title', validation: { length: { min: 1 } } }),
         lede: fields.text({ label: 'Lede', multiline: true, validation: { length: { min: 1, max: 320 } } }),
+        ...heroFields(),
         openings: fields.array(
           fields.object({
             role: fields.text({ label: 'Role', validation: { length: { min: 1 } } }),
@@ -575,6 +579,7 @@ export default config({
       schema: {
         title: fields.text({ label: 'Title', validation: { length: { min: 1 } } }),
         lede: fields.text({ label: 'Lede', multiline: true, validation: { length: { min: 1, max: 320 } } }),
+        ...heroFields(),
         accounts: fields.multiRelationship({ label: 'Accounts honoured', collection: 'accounts' }),
         faqs: fields.multiRelationship({ label: 'FAQs', collection: 'faqs' }),
         seo: seoField(),

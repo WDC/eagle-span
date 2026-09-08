@@ -2,12 +2,15 @@
 import { render } from 'astro:content';
 
 import BaseLayout from '~/layouts/BaseLayout.astro';
+import CtaBand from '~/components/CtaBand.astro';
 import Faqs from '~/components/Faqs.astro';
 import Figure from '~/components/Figure.astro';
 import PageHeader from '~/components/PageHeader.astro';
 import { getEntries } from 'astro:content';
-import { getSingleton, resolveFaqs } from '~/lib/content.ts';
-import { placeholderAt } from '~/lib/placeholders.ts';
+import Quotes from '~/components/Quotes.astro';
+import { getSingleton, listTestimonials, resolveFaqs } from '~/lib/content.ts';
+
+import shopBays from '~/assets/photos/shop-bays.webp';
 import { PAGES, pageCrumbs } from '~/lib/routes.ts';
 import { site } from '~/site.config.ts';
 import { faqPageNode } from '~/lib/schema.ts';
@@ -30,6 +33,7 @@ const crumbs = pageCrumbs('Fleet', path);
 
 const accounts = page.data.accounts.length ? await getEntries(page.data.accounts) : [];
 const faqs = await resolveFaqs(page.data.faqs);
+const testimonials = await listTestimonials();
 
 const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 ---
@@ -44,7 +48,14 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
   canonical={page.data.seo.canonical}
   image={page.data.seo.image?.src}
 >
-  <PageHeader mark="Fleet" title={page.data.title} lede={page.data.lede} {crumbs} />
+  <PageHeader
+    mark="Fleet"
+    title={page.data.title}
+    lede={page.data.lede}
+    {crumbs}
+    image={page.data.hero}
+    imageAlt={page.data.heroAlt}
+  />
 
   <div class="l-band">
     <div class="l-page">
@@ -76,9 +87,10 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
           <Figure
             class="fleet__shot"
-            image={placeholderAt('fleet-yard', 'wide', 'Placeholder — a customer fleet parked in the yard')}
-            alt="Placeholder — a customer fleet parked in the yard"
+            image={shopBays}
+            alt="The Eagle Span service bays in Charlotte, with heavy-duty trucks on the racks"
             ratio="21 / 9"
+            sizes="(width >= 64rem) 60rem, 92vw"
           />
         </div>
       </div>
@@ -118,6 +130,15 @@ const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
   }
 
   <Faqs items={faqs} heading="Fleet questions" />
+  <Quotes items={testimonials} id="quotes-fleet" />
+
+  <CtaBand
+    id="fleet-cta"
+    kicker="Fleet"
+    heading="Put your yard on a schedule"
+    lede="Tell us how many units you run and what they do, and we will come back with a maintenance interval and a plan for the ones already down."
+    secondaryLabel="Talk to us about a fleet"
+  />
 </BaseLayout>
 
 <style>

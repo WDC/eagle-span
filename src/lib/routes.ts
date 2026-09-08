@@ -66,14 +66,21 @@ export const PAGES = {
 } as const;
 
 /**
- * The primary navigation, in order.
+ * The site's top-level destinations, in order.
  *
  * `/service` and `/repair` are here because of Phase 0 defect 10: both are in
  * the sitemap and neither is linked from any of the 30 crawled pages. Every
  * page linked its 14 children directly and skipped the two indexes, so the
- * indexes accumulated no internal link equity at all. A header link on every
- * page is the fix, and it is why the navigation is not derived from the
- * collections — the indexes are the point.
+ * indexes accumulated no internal link equity at all. A link on every page is
+ * the fix, and it is why this list is written out rather than derived — the
+ * indexes are the point, and no collection contains them.
+ *
+ * The header no longer reads this. It builds a tree in `src/lib/navigation.ts`
+ * — the same five items, two of them carrying every child — because a menu
+ * that lists what is behind a section is worth more than a menu that names it.
+ * This stays because the footer's Company column is exactly "the top-level
+ * destinations that are not one of the two offering indexes", which is a
+ * different question than "what does the menu show".
  */
 export const NAV = [
   { label: SECTIONS.services.label, href: SECTIONS.services.index! },

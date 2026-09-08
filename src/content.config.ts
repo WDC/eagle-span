@@ -226,11 +226,30 @@ const heroSchema = (image: ImageFn) =>
     imageAlt: z.string().min(1).optional(),
   });
 
+/*
+ * Every standalone page, and — since the visual pass — every one of them can
+ * carry a photograph. `pageBase` was `title`/`lede`/`seo` and nothing else,
+ * which is why /company/about, /company/careers, /contact and the three index
+ * pages were the only routes on the site rendering as a heading over prose
+ * with no picture anywhere. The field is the same `hero`/`heroAlt` pair a
+ * routed entry has, under the same rule: no image without alt text.
+ *
+ * The rule is NOT a `.refine()` here, and that is deliberate. A refined schema
+ * is a `ZodEffects` rather than a `ZodObject`, and Astro's generated types fall
+ * back to `Record<string, any>` for a collection whose schema is one — which is
+ * why `withHeroAlt` above costs services, repairs and articles their `data`
+ * types without anything reporting it. Spreading that to the seven singletons
+ * turned `src/lib/pages.ts` red, which is how it was noticed at all. So the
+ * pairing is checked in `verify:content` instead, where it cannot buy a
+ * guarantee about the content by giving up a guarantee about the code.
+ */
 const pageBase = (image: ImageFn) =>
   z.object({
     title: z.string().min(1),
     lede: z.string().min(1).max(320),
     seo: seoSchema(image),
+    hero: image().optional(),
+    heroAlt: z.string().min(1).optional(),
   });
 
 const home = defineCollection({

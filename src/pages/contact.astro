@@ -40,7 +40,14 @@ const crumbs = pageCrumbs('Contact', path);
   canonical={page.data.seo.canonical}
   image={page.data.seo.image?.src}
 >
-  <PageHeader mark="Contact" title={page.data.title} lede={page.data.lede} {crumbs} />
+  <PageHeader
+    mark="Contact"
+    title={page.data.title}
+    lede={page.data.lede}
+    {crumbs}
+    image={page.data.hero}
+    imageAlt={page.data.heroAlt}
+  />
 
   <div class="l-band">
     <div class="l-page l-split">

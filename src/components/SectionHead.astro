@@ -1,0 +1,83 @@
+---
+/*
+ * The top of a band: kicker, heading, optional lede, optional link out.
+ *
+ * This existed five times in `index.astro` as the same eleven lines with a
+ * different string in them, and nowhere else — which is why every other
+ * template's sections opened with a bare `<h2>` and the homepage's opened with
+ * a green tick, a label and a rule. Pulling it out is what lets a service page,
+ * an index and the fleet page be built out of the same parts the homepage is,
+ * rather than each being assembled by hand and drifting.
+ *
+ * `id` is required when there is a heading, because a band's heading is what
+ * labels the band — `aria-labelledby` on the section points here.
+ */
+interface Props {
+  /** The small label above the heading. */
+  kicker?: string | undefined;
+  heading: string;
+  id: string;
+  lede?: string | undefined;
+  /** A link to the fuller list this band is a sample of. */
+  more?: { href: string; label: string } | undefined;
+  /** Heading level. A band inside a page is an h2; nested ones pass 3. */
+  level?: 2 | 3 | undefined;
+}
+
+const { kicker, heading, id, lede, more, level = 2 } = Astro.props;
+const Heading = `h${level}` as 'h2' | 'h3';
+---
+
+<div class="head">
+  <div class="head__copy">
+    {
+      kicker && (
+        <p class="c-kicker">
+          <span class="c-tick" aria-hidden="true" />
+          <span class="u-label">{kicker}</span>
+        </p>
+      )
+    }
+    <Heading {id} class="head__title">{heading}</Heading>
+    {lede && <p class="head__lede">{lede}</p>}
+  </div>
+
+  {
+    more && (
+      <a class="c-link head__more" href={more.href}>
+        {more.label}
+        <span class="c-arrow" aria-hidden="true">
+          →
+        </span>
+      </a>
+    )
+  }
+</div>
+
+<style>
+  .head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--s-3) var(--s-5);
+    flex-wrap: wrap;
+    margin-block-end: var(--s-5);
+  }
+
+  .head__copy { min-inline-size: 0; }
+
+  .head__title {
+    font-size: var(--t-h2);
+    letter-spacing: var(--ls-heading);
+    margin-block-start: var(--s-2);
+  }
+
+  .head__lede {
+    color: var(--c-ink-2);
+    max-inline-size: var(--measure);
+    margin-block-start: var(--s-2);
+  }
+
+  /* Sits on the heading's baseline, not below its descenders. */
+  .head__more { flex: none; padding-block-end: 0.3em; }
+</style>

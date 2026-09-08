@@ -1,39 +1,56 @@
 ---
-import { NAV, PAGES } from '~/lib/routes.ts';
+import { Image } from 'astro:assets';
+
+import Icon from '~/components/Icon.astro';
+import logo from '~/assets/brand/eaglespan-logo.png';
+import { buildNav } from '~/lib/navigation.ts';
+import { PAGES } from '~/lib/routes.ts';
 import { site } from '~/site.config.ts';
 import { getSingleton } from '~/lib/content.ts';
 
 /*
- * The header, on every page, and now sticky.
+ * The header, on every page: sticky, and now a mega menu.
  *
- * The navigation is the fix for Phase 0 defect 10. `/service` and `/repair` are
- * both in the sitemap and neither was linked from any of the thirty crawled
- * pages — every template linked the fourteen children directly and skipped
- * their parents, so the two index pages accumulated no internal link equity at
- * all. Linking the indexes rather than the children is deliberate: fourteen
- * links in a header is a menu nobody reads and a link graph with no shape.
+ * Phase 4 shipped five flat links, and the comment that used to be here
+ * defended it — fourteen links in a header is a menu nobody reads. That was an
+ * argument against fourteen links in a *bar*, and it was right about that. It
+ * was also the reason a reader who wanted brake repair had to guess that it
+ * lived behind a link called "Repairs", open a list page, and read it. The live
+ * site put all fourteen one hover away, and losing that is a regression a
+ * redesign does not get to call restraint.
  *
- * The phone number is in the header because it is the action most visitors
- * want, and it renders from site.config like every other instance of it.
+ * So: two full panels of children with the sentence that says what each one is,
+ * a Company panel, and Fleet and Contact as plain links because neither has
+ * anything under it. Phase 0 defect 10 survives intact — each panel is headed
+ * by its own index, linked, on every page, which is more equity to `/service`
+ * and `/repair` than the flat bar ever gave them, not less.
  *
- * Three things changed in the polish pass:
+ * **No JavaScript.** The panels open on `:hover` and on `:focus-within`, and
+ * the whole thing degrades in the right direction: a top-level item is a real
+ * link to a real index page that lists the same children, so a browser that
+ * never opens a panel loses nothing but a shortcut. The panel is hidden with
+ * `opacity` and `pointer-events` rather than `visibility` or `display`
+ * deliberately — the other two would take its links out of the tab order, and
+ * then `:focus-within` could never fire and a keyboard would never reach the
+ * menu at all. This way tabbing off "Services" lands on "DOT Inspection" and
+ * the panel appears because it did.
  *
- *   * **It sticks.** A truck is down and the number has to be one thumb-reach
- *     away at any scroll depth, not at the top of a 4,000px page.
- *   * **The narrow layout is a disclosure, not a wrap.** Five links, a number
- *     and a button reflowed into four rows, which is how the phone screenshot
- *     ended up with a masthead taller than the hero. It is a `<details>`: the
- *     browser owns the open state, the keyboard behaviour and the semantics,
- *     and the site's script budget stays where it is.
- *   * **It lifts on scroll**, on a scroll timeline rather than a listener —
- *     the same construction as the section reveals, for the same reason.
+ * Below 64rem the same tree becomes nested `<details>`: the browser owns the
+ * open state, the Enter/Space handling and the semantics, and the script budget
+ * stays at zero.
  */
 const settings = await getSingleton('settings');
 const { cta, announcement } = settings.data;
 
+const nav = await buildNav();
+
 const path = Astro.url.pathname;
 /* A section is current when the page is the index or one of its children. */
 const isCurrent = (href: string) => path === href || (href !== '/' && path.startsWith(`${href}/`));
+/* A top-level item is current when it is, or when anything in its panel is. */
+const sectionCurrent = (item: (typeof nav)[number]) =>
+  isCurrent(item.href) ||
+  (item.panel?.groups ?? []).some((group) => group.children.some((child) => isCurrent(child.href)));
 ---
 
 {
@@ -50,18 +67,95 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
 <header class="masthead">
   <div class="l-page masthead__inner">
     <a class="masthead__brand" href={PAGES.home}>
-      <span class="masthead__name">{site.name}</span>
+      {/*
+        The logo, at last. It is the shop’s own mark off the live site, and it
+        replaces two lines of set text that were standing in for it. `alt` is
+        the business name because that is what the image says; the locality
+        beside it stays as text, since it is information the mark does not
+        carry.
+      */}
+      <Image class="masthead__logo" src={logo} alt={site.name} widths={[240, 480]} sizes="240px" loading="eager" />
       <span class="masthead__place u-label">{site.address.locality}, {site.address.region}</span>
     </a>
 
     <nav class="masthead__nav" aria-label="Primary">
       <ul class="masthead__list">
         {
-          NAV.map((item) => (
-            <li>
-              <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+          nav.map((item) => (
+            <li class:list={['nav__item', item.panel && 'nav__item--panelled']}>
+              <a
+                class="nav__top"
+                href={item.href}
+                aria-current={sectionCurrent(item) ? 'page' : undefined}
+              >
                 {item.label}
+                {item.panel && <span class="nav__chev" aria-hidden="true" />}
               </a>
+
+              {item.panel && (
+                <div class="nav__panel">
+                  <div class="nav__panel-inner l-page">
+                    <div class="nav__lead">
+                      <p class="c-kicker">
+                        <span class="c-tick" aria-hidden="true" />
+                        <span class="u-label">{item.label}</span>
+                      </p>
+                      <p class="nav__lede">{item.panel.lede}</p>
+                      <a class="c-link nav__index" href={item.href}>
+                        {item.panel.indexLabel}
+                        <span class="c-arrow" aria-hidden="true">
+                          →
+                        </span>
+                      </a>
+
+                      {/*
+                        The action column. A reader opening “Repairs” at 7am has
+                        a truck down, and the number should not be a scroll away
+                        from the list of what is wrong with it.
+                      */}
+                      <div class="nav__actions">
+                        <a
+                          class="c-btn c-btn--primary c-btn--block u-tabular u-nowrap"
+                          href={`tel:${site.phoneE164}`}
+                          data-conversion="call"
+                        >
+                          {site.phoneDisplay}
+                        </a>
+                        <a class="c-btn c-btn--ghost c-btn--block" href={cta.href}>
+                          {cta.label}
+                        </a>
+                      </div>
+                    </div>
+
+                    {item.panel.groups.map((group) => (
+                      <ul class="nav__grid" aria-label={group.label}>
+                        {group.children.map((child) => (
+                          <li>
+                            <a
+                              class="nav__card"
+                              href={child.href}
+                              aria-current={isCurrent(child.href) ? 'page' : undefined}
+                            >
+                              <span class="nav__card-icon" aria-hidden="true">
+                                <Icon name={child.icon} />
+                              </span>
+                              <span class="nav__card-text">
+                                <span class="nav__card-title">
+                                  {child.label}
+                                  <span class="c-arrow nav__card-arrow" aria-hidden="true">
+                                    →
+                                  </span>
+                                </span>
+                                <span class="nav__card-summary">{child.summary}</span>
+                              </span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    ))}
+                  </div>
+                </div>
+              )}
             </li>
           ))
         }
@@ -70,15 +164,7 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
 
     <div class="masthead__action">
       <a class="masthead__phone u-tabular u-nowrap" href={`tel:${site.phoneE164}`} data-conversion="call">
-        <svg class="masthead__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-          <path
-            d="M5.2 2.5 6.6 5.3 5.3 6.6a8.4 8.4 0 0 0 4.1 4.1l1.3-1.3 2.8 1.4v2.1c0 .6-.5 1-1.1 1A11.6 11.6 0 0 1 1.4 2.6c0-.6.5-1.1 1-1.1h2.1z"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.4"
-            stroke-linejoin="round"
-          />
-        </svg>
+        <Icon name="phone" class="masthead__icon" />
         {site.phoneDisplay}
       </a>
       <a class="c-btn c-btn--primary masthead__cta" href={cta.href}>{cta.label}</a>
@@ -89,6 +175,12 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
       the open state, the Enter/Space handling and the “this thing expands”
       semantics are the browser’s, and a navigation that needs JavaScript to
       open is a navigation that is broken on the slow connection it matters on.
+
+      The panels become a second level of the same element. A section with
+      children is a nested `<details>` whose summary is the section and whose
+      first row is its index page — so the index is reachable on a phone
+      without opening anything, and the fourteen children are one tap deeper
+      rather than absent.
     */}
     <details class="menu">
       <summary class="menu__toggle">
@@ -100,12 +192,51 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
         <nav aria-label="Primary, narrow">
           <ul class="menu__list">
             {
-              NAV.map((item) => (
+              nav.map((item) => (
                 <li>
-                  <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
-                    {item.label}
-                    <span class="c-arrow" aria-hidden="true">→</span>
-                  </a>
+                  {item.panel ? (
+                    <details class="menu__section" open={sectionCurrent(item)}>
+                      <summary class="menu__section-toggle">
+                        {item.label}
+                        <span class="menu__section-mark" aria-hidden="true" />
+                      </summary>
+                      <ul class="menu__sublist">
+                        <li>
+                          <a
+                            class="menu__sublink menu__sublink--index"
+                            href={item.href}
+                            aria-current={isCurrent(item.href) ? 'page' : undefined}
+                          >
+                            {item.panel.indexLabel}
+                            <span class="c-arrow" aria-hidden="true">
+                              →
+                            </span>
+                          </a>
+                        </li>
+                        {item.panel.groups.map((group) =>
+                          group.children.map((child) => (
+                            <li>
+                              <a
+                                class="menu__sublink"
+                                href={child.href}
+                                aria-current={isCurrent(child.href) ? 'page' : undefined}
+                              >
+                                <Icon name={child.icon} class="menu__subicon" />
+                                {child.label}
+                              </a>
+                            </li>
+                          )),
+                        )}
+                      </ul>
+                    </details>
+                  ) : (
+                    <a class="menu__link" href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+                      {item.label}
+                      <span class="c-arrow" aria-hidden="true">
+                        →
+                      </span>
+                    </a>
+                  )}
                 </li>
               ))
             }
@@ -173,19 +304,30 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
     text-decoration: none;
     display: flex;
     flex-direction: column;
-    gap: 0.1em;
+    gap: 0.15em;
     margin-inline-end: auto;
     /* The brand is the one thing that must not wrap at any width. */
     white-space: nowrap;
   }
 
-  .masthead__name {
-    font-weight: 620;
-    letter-spacing: var(--ls-heading);
-    font-size: var(--t-body);
+  .masthead__logo {
+    inline-size: auto;
+    /*
+     * The mark carries the wordmark inside it, so its height is set by how
+     * small "EagleSpan Corporation" can be and still be read — not by how
+     * much room the bar has. Below about 2.6rem the second word closes up.
+     */
+    block-size: 2.8rem;
+    /* The mark is wider than it is tall once trimmed; the height is the anchor. */
+    object-fit: contain;
+    object-position: left center;
   }
 
-  .masthead__place { color: var(--c-ink-3); }
+  .masthead__place {
+    color: var(--c-ink-3);
+    /* Aligns to the wordmark's left edge rather than the image box's. */
+    padding-inline-start: 0.1em;
+  }
 
   .masthead__list {
     display: flex;
@@ -196,8 +338,18 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
     margin: 0;
   }
 
-  .masthead__list a {
-    display: block;
+  /*
+   * The panel is positioned against the masthead, not against the item: a
+   * fourteen-card grid hung off a 70px-wide link would be pinned to the left
+   * edge of that link and run off the right of the viewport. `static` on the
+   * item and `relative` on the bar is what lets the panel span the page.
+   */
+  .nav__item { position: static; }
+
+  .nav__top {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
     text-decoration: none;
     font-size: var(--t-fine);
     font-weight: 560;
@@ -206,7 +358,7 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
     transition: color var(--d-fast) var(--e-out), border-color var(--d-fast) var(--e-out);
   }
 
-  .masthead__list a:hover { border-block-end-color: var(--c-rule-strong); }
+  .nav__top:hover { border-block-end-color: var(--c-rule-strong); }
 
   /*
    * The current section is marked with a rule under the label, not a colour
@@ -215,8 +367,182 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
    * alignment-target green, which is the one thing on this site that means
    * "this is the one" — as a border, never as the text colour.
    */
-  .masthead__list a[aria-current='page'] {
-    border-block-end-color: var(--c-target);
+  .nav__top[aria-current='page'] { border-block-end-color: var(--c-target); }
+
+  /* A chevron drawn from a border, so it costs no request and inherits ink. */
+  .nav__chev {
+    inline-size: 0.42em;
+    block-size: 0.42em;
+    border-inline-end: 1.5px solid currentColor;
+    border-block-end: 1.5px solid currentColor;
+    transform: translateY(-0.15em) rotate(45deg);
+    color: var(--c-ink-3);
+  }
+
+  /* ---- The panels ------------------------------------------------------ */
+
+  .masthead__nav { position: static; }
+
+  .nav__panel {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 100%;
+    /*
+     * Hidden by opacity, NOT by visibility or display. Both of those take the
+     * links out of the tab order, and a panel that only opens on `:focus-within`
+     * can then never be focused into — the menu would be mouse-only. This way
+     * the links stay reachable, `pointer-events` keeps the invisible panel from
+     * swallowing clicks on the page under it, and the reveal is the same
+     * whether it came from a pointer or from the Tab key.
+     */
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-0.5rem);
+    background: var(--c-ground);
+    border-block-end: var(--hairline) solid var(--c-rule);
+    box-shadow: var(--shadow-3);
+  }
+
+  .nav__item:hover > .nav__panel,
+  .nav__item:focus-within > .nav__panel {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .nav__panel-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) minmax(0, 3fr);
+    gap: var(--s-6);
+    padding-block: var(--s-5);
+  }
+
+  .nav__lede {
+    color: var(--c-ink-2);
+    font-size: var(--t-fine);
+    margin-block-start: var(--s-2);
+    max-inline-size: 22ch;
+  }
+
+  .nav__index {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4em;
+    margin-block-start: var(--s-3);
+    font-weight: 620;
+    font-size: var(--t-fine);
+  }
+
+  .nav__actions {
+    display: grid;
+    gap: var(--s-2);
+    margin-block-start: var(--s-4);
+    padding-block-start: var(--s-4);
+    border-block-start: var(--hairline) solid var(--c-rule);
+  }
+
+  .nav__grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    /*
+     * Three across, fixed, rather than `auto-fill`. Auto-fill packs four into
+     * a wide viewport, which leaves the nine repairs as 4/4/1 — a ragged last
+     * row that reads as a mistake — and squeezes every summary until it
+     * ellipses. Three gives 3/3/3 for repairs and 3/2 for services, and each
+     * card gets the width its sentence needs.
+     */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-1);
+    align-content: start;
+  }
+
+  .nav__card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-3);
+    padding: var(--s-3);
+    border-radius: var(--r-2);
+    text-decoration: none;
+    border: var(--hairline) solid transparent;
+    transition:
+      background-color var(--d-fast) var(--e-out),
+      border-color var(--d-fast) var(--e-out);
+  }
+
+  .nav__card:hover,
+  .nav__card:focus-visible {
+    background: var(--c-ground-2);
+    border-color: var(--c-rule);
+  }
+
+  /*
+   * The icon sits in a tinted tile rather than loose beside the text. It is the
+   * only colour in the panel, at wash weight, so fourteen of them read as a
+   * rhythm rather than as fourteen things shouting.
+   */
+  .nav__card-icon {
+    display: grid;
+    place-items: center;
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    flex: none;
+    border-radius: var(--r-2);
+    background: var(--c-wash-blue);
+    color: var(--c-blue-deep);
+    transition: background-color var(--d-fast) var(--e-out), color var(--d-fast) var(--e-out);
+  }
+
+  .nav__card:hover .nav__card-icon,
+  .nav__card:focus-visible .nav__card-icon {
+    background: var(--c-wash-green);
+    color: var(--c-target-ink);
+  }
+
+  .nav__card-text { display: grid; gap: 0.15rem; min-inline-size: 0; }
+
+  .nav__card-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4em;
+    font-weight: 620;
+    font-size: var(--t-fine);
+    color: var(--c-ink);
+  }
+
+  .nav__card-arrow {
+    color: var(--c-ink-3);
+    opacity: 0;
+    transform: translateX(-0.2em);
+    transition: opacity var(--d-fast) var(--e-out), transform var(--d-fast) var(--e-out);
+  }
+
+  .nav__card:hover .nav__card-arrow,
+  .nav__card:focus-visible .nav__card-arrow {
+    opacity: 1;
+    transform: none;
+  }
+
+  .nav__card-summary {
+    font-size: var(--t-micro);
+    color: var(--c-ink-3);
+    line-height: 1.4;
+    /*
+     * Two lines, hard. `trimSummary` already cuts the sentence, but a long
+     * label wrapping to two lines can still push a summary to three and knock
+     * the row below out of alignment. The clamp is the backstop, not the plan.
+     */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .nav__card[aria-current='page'] .nav__card-icon {
+    background: var(--c-wash-green);
+    color: var(--c-target-ink);
   }
 
   .masthead__action {
@@ -236,7 +562,7 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
   }
 
   .masthead__phone:hover { color: var(--c-target-ink); }
-  .masthead__icon { inline-size: 1em; block-size: 1em; }
+  .masthead__phone :global(.masthead__icon) { inline-size: 1em; block-size: 1em; }
 
   /* ---- The narrow menu ------------------------------------------------- */
 
@@ -292,7 +618,11 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
     position: absolute;
     inset-inline: auto 0;
     inset-block-start: calc(100% + var(--s-2));
-    inline-size: min(20rem, calc(100vw - var(--gutter) * 2));
+    inline-size: min(22rem, calc(100vw - var(--gutter) * 2));
+    /* Fourteen children plus five sections is taller than a phone. */
+    max-block-size: min(72vh, 40rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: var(--s-4);
     background: var(--c-ground);
     border: var(--hairline) solid var(--c-rule);
@@ -309,7 +639,8 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
     display: grid;
   }
 
-  .menu__list a {
+  .menu__link,
+  .menu__section-toggle {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -318,13 +649,67 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
     border-block-end: var(--hairline) solid var(--c-rule);
     text-decoration: none;
     font-weight: 620;
+    cursor: pointer;
+    list-style: none;
   }
 
-  .menu__list li:last-child a { border-block-end: 0; }
+  .menu__section-toggle::-webkit-details-marker { display: none; }
+  .menu__section-toggle::marker { content: ''; }
 
-  .menu__list a[aria-current='page'] { color: var(--c-target-ink); }
+  .menu__list > li:last-child :where(.menu__link, .menu__section-toggle) { border-block-end: 0; }
 
-  .menu__list .c-arrow { color: var(--c-ink-3); }
+  .menu__link[aria-current='page'] { color: var(--c-target-ink); }
+
+  .menu__link .c-arrow { color: var(--c-ink-3); }
+
+  /* The section mark is the same chevron, rotated when the section is open. */
+  .menu__section-mark {
+    inline-size: 0.42em;
+    block-size: 0.42em;
+    border-inline-end: 1.5px solid currentColor;
+    border-block-end: 1.5px solid currentColor;
+    color: var(--c-ink-3);
+    transform: translateY(-0.15em) rotate(45deg);
+    transition: transform var(--d-fast) var(--e-out);
+  }
+
+  .menu__section[open] .menu__section-mark { transform: translateY(0.05em) rotate(225deg); }
+
+  .menu__sublist {
+    list-style: none;
+    margin: 0;
+    padding: var(--s-2) 0 var(--s-3);
+    display: grid;
+    gap: 0.1rem;
+    /* The rail again, at menu scale: the children hang off their parent. */
+    border-inline-start: var(--hairline) solid var(--c-rule);
+    margin-inline-start: 0.35rem;
+    padding-inline-start: var(--s-3);
+  }
+
+  .menu__sublink {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding-block: var(--s-2);
+    text-decoration: none;
+    font-size: var(--t-fine);
+    color: var(--c-ink-2);
+  }
+
+  .menu__sublink[aria-current='page'] { color: var(--c-target-ink); font-weight: 620; }
+
+  .menu__sublink--index {
+    justify-content: space-between;
+    font-weight: 620;
+    color: var(--c-ink);
+  }
+
+  .menu__sublink :global(.menu__subicon) {
+    inline-size: 1.15rem;
+    block-size: 1.15rem;
+    color: var(--c-ink-3);
+  }
 
   .menu__actions { display: grid; gap: var(--s-2); }
 
@@ -342,13 +727,43 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
     .masthead__cta { display: none; }
   }
 
+  /*
+   * Two steps down. First the cards drop to two across, then — where the panel
+   * no longer has room for a lead column beside them — the lead moves above
+   * and its two actions sit side by side.
+   */
+  @media (width < 86rem) {
+    .nav__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (width < 72rem) {
+    .nav__panel-inner { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+    .nav__lede { max-inline-size: none; }
+    .nav__actions { grid-template-columns: 1fr 1fr; }
+  }
+
   @media (width < 30rem) {
     /* At this width the number alone is wider than the brand. Icon only. */
     .masthead__phone { font-size: 0; gap: 0; }
-    .masthead__icon { inline-size: 1.15rem; block-size: 1.15rem; }
+    .masthead__phone :global(.masthead__icon) { inline-size: 1.15rem; block-size: 1.15rem; }
+    .masthead__logo { block-size: 1.8rem; }
   }
 
   /* ---- Motion ---------------------------------------------------------- */
+
+  /*
+   * The panel's slide is opt-in; its appearance is not. With reduced motion the
+   * transition is simply absent and the panel is there on the first frame,
+   * which is the state that was always true — the same rule the rest of the
+   * site's motion follows.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    .nav__panel {
+      transition:
+        opacity var(--d-fast) var(--e-out),
+        transform var(--d-base) var(--e-out);
+    }
+  }
 
   /*
    * The bar earns its shadow by leaving the top of the page, on a scroll

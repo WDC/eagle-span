@@ -46,6 +46,8 @@ const EMPLOYMENT_LABEL = {
   image={page.data.seo.image?.src}
 >
   <PageHeader
+    image={page.data.hero}
+    imageAlt={page.data.heroAlt}
     mark={String(page.data.openings.length).padStart(2, '0')}
     title={page.data.title}
     lede={page.data.lede}

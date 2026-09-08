@@ -102,7 +102,7 @@ const schema = [
           class="article__hero"
           image={
             data.hero
-              ? { src: data.hero.src, width: data.hero.width, height: data.hero.height }
+              ? data.hero
               : placeholderAt(`article-${entry.id}`, 'wide', heroAlt)
           }
           alt={heroAlt}

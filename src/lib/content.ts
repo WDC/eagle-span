@@ -68,6 +68,19 @@ export async function listOfferings<C extends 'services' | 'repairs'>(collection
   );
 }
 
+/**
+ * Every testimonial, in the order the collection declares.
+ *
+ * The homepage picks three by reference because it is a shop window. Every
+ * other page that carries the quotes band wants "the testimonials", full stop
+ * — there are three of them, an editor choosing which two a brake-repair page
+ * shows would be choosing between three, and the reference list would be a
+ * field on fourteen entries that nobody would ever set differently.
+ */
+export async function listTestimonials(): Promise<CollectionEntry<'testimonials'>[]> {
+  return getCollection('testimonials');
+}
+
 /** Articles: newest first, on the revision date when there is one. */
 export async function listArticles(): Promise<CollectionEntry<'articles'>[]> {
   const entries = await listPublished('articles');

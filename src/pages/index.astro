@@ -2,13 +2,21 @@
 import { getEntries, render } from 'astro:content';
 
 import BaseLayout from '~/layouts/BaseLayout.astro';
+import CtaBand from '~/components/CtaBand.astro';
 import EntryList from '~/components/EntryList.astro';
 import Faqs from '~/components/Faqs.astro';
 import Figure from '~/components/Figure.astro';
 import LocationCard from '~/components/LocationCard.astro';
+import OfferingCards from '~/components/OfferingCards.astro';
+import Quotes from '~/components/Quotes.astro';
+import SectionHead from '~/components/SectionHead.astro';
 import ThrustAngle from '~/components/ThrustAngle.astro';
 import { getSingleton, resolveFaqs, resolveOfferings } from '~/lib/content.ts';
-import { placeholderAt } from '~/lib/placeholders.ts';
+
+import shopBays from '~/assets/photos/shop-bays.webp';
+import alignmentStation from '~/assets/photos/alignment-station.webp';
+import underTruck from '~/assets/photos/under-truck-inspection.webp';
+import tireBay from '~/assets/photos/tire-bay.webp';
 import { PAGES, SECTIONS, entryPath } from '~/lib/routes.ts';
 import { faqPageNode } from '~/lib/schema.ts';
 import { site } from '~/site.config.ts';
@@ -47,15 +55,20 @@ const path = PAGES.home;
 const schema = faqs.length ? [faqPageNode(path, faqs)] : [];
 
 /*
- * The shop strip. Three slots, named for what belongs in them rather than for
- * what the CDN currently returns — see src/lib/placeholders.ts. These are the
- * pictures the Phase 0 blocker is about (ClickUp 86bbw07ex), and they are the
- * single largest visual difference between this page and a finished one.
+ * The shop strip. Three photographs of the actual shop, which is what this slot
+ * was always for — it held labelled placeholders while the asset export was
+ * open, and the comment here used to say so.
+ *
+ * They are imported rather than named in content because they are the page's
+ * furniture, not its copy: an editor changing which three photographs sit under
+ * "Inside the shop" is a design decision, and the three that are here are the
+ * bays, the alignment rack and a truck up on stands — the three things the
+ * sentence above them names.
  */
 const shopShots = [
-  placeholderAt('home-shop-bays', 'card', 'Placeholder — the seven-bay shop floor with trucks on the racks'),
-  placeholderAt('home-shop-alignment', 'card', 'Placeholder — a tractor on the heavy-duty alignment rig'),
-  placeholderAt('home-shop-tech', 'card', 'Placeholder — a diesel technician working under a raised truck'),
+  { image: shopBays, alt: 'The Eagle Span service bays in Charlotte, with heavy-duty trucks on the racks' },
+  { image: alignmentStation, alt: 'A technician at the alignment station reading measurements off the screen' },
+  { image: underTruck, alt: 'A technician working beneath a heavy-duty truck raised on stands' },
 ];
 ---
 
@@ -207,15 +220,24 @@ const shopShots = [
   */}
   <section class="l-band l-band--ground-2" aria-labelledby="home-inside">
     <div class="l-page">
-      <h2 id="home-inside" class="section__head">Inside the shop</h2>
-      <p class="section__lede">
-        Seven bays, a heavy-duty alignment rack and the diagnostic equipment to go with them.
-      </p>
+      <SectionHead
+        kicker="Inside"
+        heading="Inside the shop"
+        id="home-inside"
+        lede="Seven bays, a heavy-duty alignment rack and the diagnostic equipment to go with them."
+      />
 
       <div class="l-grid shots" style="--min: 15rem;">
         {
           shopShots.map((shot) => (
-            <Figure class="u-reveal-item" image={shot} alt={shot.alt} ratio="3 / 2" zoom />
+            <Figure
+              class="u-reveal-item"
+              image={shot.image}
+              alt={shot.alt}
+              ratio="3 / 2"
+              sizes="(width >= 64rem) 28rem, (width >= 40rem) 45vw, 92vw"
+              zoom
+            />
           ))
         }
       </div>
@@ -226,49 +248,21 @@ const shopShots = [
     services.length > 0 && (
       <section class="l-band" aria-labelledby="home-services">
         <div class="l-page">
-          <div class="section__top">
-            <div>
-              <p class="c-kicker">
-                <span class="c-tick" aria-hidden="true" />
-                <span class="u-label u-tabular">{String(services.length).padStart(2, '0')} services</span>
-              </p>
-              <h2 id="home-services" class="section__head">{SECTIONS.services.label}</h2>
-            </div>
-            <a class="c-link" href={SECTIONS.services.index!}>
-              All {SECTIONS.services.label.toLowerCase()}<span class="c-arrow" aria-hidden="true">→</span>
-            </a>
-          </div>
+          <SectionHead
+            kicker={`${String(services.length).padStart(2, '0')} services`}
+            heading={SECTIONS.services.label}
+            id="home-services"
+            lede="Scheduled work — the jobs that keep a truck out of the bay."
+            more={{ href: SECTIONS.services.index!, label: `All ${SECTIONS.services.label.toLowerCase()}` }}
+          />
 
           {/*
-            The one card grid on the site, and it is here because these five are
-            the things a visitor is choosing between. An index of everything is
-            still a list of hairline rows — see the repairs band below.
+            The card grid, which used to be written out here and is now
+            `OfferingCards` — the same component the offering pages and the two
+            index pages use, so a card looks the same wherever it appears and
+            there is one place to change what one is.
           */}
-          <ul class="l-grid cards" style="--min: 17rem;">
-            {services.map((entry) => (
-              <li class="c-panel c-panel--link cards__card u-reveal-item">
-                <Figure
-                  image={placeholderAt(
-                    `service-${entry.id}`,
-                    'card',
-                    `Placeholder — ${entry.data.navLabel.toLowerCase()} work in the shop`,
-                  )}
-                  alt={`Placeholder — ${entry.data.navLabel.toLowerCase()} work in the shop`}
-                  ratio="16 / 10"
-                  zoom
-                />
-                <h3 class="cards__title">
-                  <a class="c-panel__link" href={entryPath('services', entry.id)}>
-                    {entry.data.navLabel}
-                  </a>
-                </h3>
-                <p class="cards__summary">{entry.data.summary}</p>
-                <p class="cards__more u-label">
-                  Read more<span class="c-arrow" aria-hidden="true">→</span>
-                </p>
-              </li>
-            ))}
-          </ul>
+          <OfferingCards collection="services" entries={services} />
         </div>
       </section>
     )
@@ -278,18 +272,19 @@ const shopShots = [
     repairs.length > 0 && (
       <section class="l-band l-band--ground-2" aria-labelledby="home-repairs">
         <div class="l-page">
-          <div class="section__top">
-            <div>
-              <p class="c-kicker">
-                <span class="c-tick" aria-hidden="true" />
-                <span class="u-label u-tabular">{String(repairs.length).padStart(2, '0')} repairs</span>
-              </p>
-              <h2 id="home-repairs" class="section__head">{SECTIONS.repairs.label}</h2>
-            </div>
-            <a class="c-link" href={SECTIONS.repairs.index!}>
-              All {SECTIONS.repairs.label.toLowerCase()}<span class="c-arrow" aria-hidden="true">→</span>
-            </a>
-          </div>
+          {/*
+            Rows, not cards, and deliberately: the band above is a grid of
+            photographs and two of those in a row would be a page of pictures
+            with the reading between them. A repair is also the thing a reader
+            arrives already knowing the name of.
+          */}
+          <SectionHead
+            kicker={`${String(repairs.length).padStart(2, '0')} repairs`}
+            heading={SECTIONS.repairs.label}
+            id="home-repairs"
+            lede="Something has failed. These are the ones we fix most."
+            more={{ href: SECTIONS.repairs.index!, label: `All ${SECTIONS.repairs.label.toLowerCase()}` }}
+          />
 
           <EntryList
             numbered={false}
@@ -304,90 +299,36 @@ const shopShots = [
     )
   }
 
-  {
-    testimonials.length > 0 && (
-      <section class="l-band l-band--wash" aria-labelledby="home-said">
-        <div class="l-page">
-          <p class="c-kicker">
-            <span class="c-tick" aria-hidden="true" />
-            <span class="u-label">Said</span>
-          </p>
-          <h2 id="home-said" class="section__head">What customers say</h2>
-
-          <ul class="l-grid quotes" style="--min: 18rem;">
-            {testimonials.map((entry) => (
-              <li class="c-panel u-reveal-item">
-                <figure class="c-quote">
-                  <blockquote>{entry.data.quote}</blockquote>
-                  {/*
-                    Name, then role and company only when they exist. There is no
-                    placeholder to fall back to, which is the point: the live site
-                    printed “Position, Company name” because its template needed
-                    one.
-                  */}
-                  <figcaption>
-                    <span class="quotes__name">{entry.data.name}</span>
-                    {(entry.data.role || entry.data.company) && (
-                      <span class="quotes__role">
-                        {[entry.data.role, entry.data.company].filter(Boolean).join(', ')}
-                      </span>
-                    )}
-                  </figcaption>
-                </figure>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-    )
-  }
+  {/*
+    The quotes band, and the `#testimonials` anchor the Company menu points at
+    — which is the destination the live site’s own menu uses for it.
+  */}
+  <Quotes items={testimonials} />
 
   <Faqs items={faqs} />
 
   <section class="l-band l-band--ground-2" aria-labelledby="home-where">
     <div class="l-page">
-      <p class="c-kicker">
-        <span class="c-tick" aria-hidden="true"></span>
-        <span class="u-label">Where</span>
-      </p>
-      <h2 id="home-where" class="section__head">Find the shop</h2>
+      <SectionHead kicker="Where" heading="Find the shop" id="home-where" />
 
       <div class="where">
         <LocationCard />
         <Figure
           class="u-reveal-item"
-          image={placeholderAt('home-exterior', 'map', 'Placeholder — the shop exterior from the street')}
-          alt="Placeholder — the shop exterior from the street"
+          image={tireBay}
+          alt="A technician working on a tire in the Eagle Span tire bay"
           ratio="3 / 2"
+          sizes="(width >= 64rem) 34rem, 92vw"
         />
       </div>
     </div>
   </section>
 
-  <section class="l-band l-band--deep t-deep u-reveal-band" aria-labelledby="home-cta">
-    <div class="l-page cta-band">
-      <div class="cta-band__copy l-stack">
-        <p class="c-kicker">
-          <span class="c-tick" aria-hidden="true"></span>
-          <span class="u-label">Next</span>
-        </p>
-        <h2 id="home-cta">Truck down, or due for an alignment?</h2>
-        <p class="cta-band__lede">
-          Call the shop and talk to someone who works on these trucks, or send the details and we
-          will come back to you with a time.
-        </p>
-      </div>
-
-      <div class="cta-band__actions">
-        <a class="c-btn c-btn--primary cta-band__call" href={`tel:${site.phoneE164}`} data-conversion="call">
-          <span class="u-tabular u-nowrap">{site.phoneDisplay}</span>
-        </a>
-        <a class="c-btn c-btn--ghost" href={PAGES.contact}>
-          Schedule service<span class="c-arrow" aria-hidden="true">→</span>
-        </a>
-      </div>
-    </div>
-  </section>
+  <CtaBand
+    id="home-cta"
+    heading="Truck down, or due for an alignment?"
+    lede="Call the shop and talk to someone who works on these trucks, or send the details and we will come back to you with a time."
+  />
 </BaseLayout>
 
 <style>
@@ -481,25 +422,6 @@ const shopShots = [
   .hero__instrument :global(.ta__svg) { max-width: none; }
   .hero__instrument :global(.ta__readout) { max-width: none; }
 
-  /* ---- Section furniture ------------------------------------------------ */
-
-  .section__top {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    justify-content: space-between;
-    gap: var(--s-3) var(--s-5);
-    margin-block-end: var(--s-5);
-  }
-
-  .section__head { margin-block-end: var(--s-2); }
-
-  .section__lede {
-    color: var(--c-ink-2);
-    max-width: var(--measure);
-    margin-block-end: var(--s-5);
-  }
-
   /* ---- The numbers ------------------------------------------------------ */
 
   .stats {
@@ -542,45 +464,6 @@ const shopShots = [
     color: var(--c-ink-3);
   }
 
-  /* ---- Cards ------------------------------------------------------------ */
-
-  .cards { list-style: none; padding: 0; margin: 0; }
-
-  .cards__card {
-    display: grid;
-    align-content: start;
-    gap: var(--s-2);
-    padding: var(--s-3);
-  }
-
-  .cards__title {
-    font-size: var(--t-h3);
-    margin-block-start: var(--s-2);
-  }
-
-  .cards__title a { text-decoration: none; }
-
-  .cards__summary {
-    color: var(--c-ink-2);
-    font-size: var(--t-fine);
-  }
-
-  .cards__more {
-    display: flex;
-    align-items: center;
-    gap: var(--s-1);
-    margin-block-start: var(--s-1);
-    color: var(--c-ink-3);
-  }
-
-  .c-panel--link:hover .cards__more { color: var(--c-ink); }
-
-  /* ---- Quotes ----------------------------------------------------------- */
-
-  .quotes { list-style: none; padding: 0; margin: 0; }
-  .quotes__name { font-weight: 620; }
-  .quotes__role { color: var(--c-ink-3); }
-
   /* ---- Where ------------------------------------------------------------ */
 
   .where {
@@ -609,39 +492,4 @@ const shopShots = [
   .facts__row dd { margin: 0; }
   .facts__cta { margin-block-start: var(--s-4); }
 
-  /* ---- Closing band ----------------------------------------------------- */
-
-  .cta-band {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    justify-content: space-between;
-    gap: var(--s-5) var(--gutter);
-  }
-
-  .cta-band__lede {
-    color: var(--c-ink-2);
-    max-width: 52ch;
-  }
-
-  .cta-band__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-2);
-  }
-
-  /*
-   * Inverted: on the dark ground the solid button has to be the light one, or
-   * the primary action is a near-black rectangle on a near-black band.
-   */
-  .cta-band__call {
-    background: var(--c-on-deep);
-    border-color: var(--c-on-deep);
-    color: var(--c-deep);
-  }
-
-  .cta-band__call:hover {
-    background: var(--c-ground-3);
-    border-color: var(--c-ground-3);
-  }
 </style>

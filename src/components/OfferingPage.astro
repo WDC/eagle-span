@@ -3,11 +3,15 @@ import type { CollectionEntry } from 'astro:content';
 import { render } from 'astro:content';
 
 import BaseLayout from '~/layouts/BaseLayout.astro';
-import EntryList from '~/components/EntryList.astro';
+import CtaBand from '~/components/CtaBand.astro';
 import Faqs from '~/components/Faqs.astro';
 import Figure from '~/components/Figure.astro';
+import Icon from '~/components/Icon.astro';
+import OfferingCards from '~/components/OfferingCards.astro';
 import PageHeader from '~/components/PageHeader.astro';
-import { resolveFaqs, resolveOfferings } from '~/lib/content.ts';
+import Quotes from '~/components/Quotes.astro';
+import SectionHead from '~/components/SectionHead.astro';
+import { listTestimonials, resolveFaqs, resolveOfferings } from '~/lib/content.ts';
 import { placeholderAt } from '~/lib/placeholders.ts';
 import { SECTIONS, PAGES, crumbsFor, entryPath } from '~/lib/routes.ts';
 import { faqPageNode, serviceNode } from '~/lib/schema.ts';
@@ -57,6 +61,13 @@ const faqs = await resolveFaqs(data.faqs);
  */
 const related = (await resolveOfferings(collection, data.related)).filter((item) => item.id !== entry.id);
 
+/*
+ * The quotes band, on every one of these pages, because the live site puts one
+ * on every one of these pages and it is the only social proof the site has.
+ * Three testimonials, the same three everywhere — see `listTestimonials`.
+ */
+const testimonials = await listTestimonials();
+
 const crumbs = crumbsFor(collection, data.navLabel, path);
 
 /*
@@ -90,7 +101,15 @@ const schema = [
   image={data.seo.image?.src}
   imageAlt={data.seo.image ? data.title : undefined}
 >
-  <PageHeader {mark} title={data.title} lede={data.summary} {crumbs} {path} />
+  <PageHeader
+    {mark}
+    title={data.title}
+    lede={data.summary}
+    {crumbs}
+    {path}
+    image={data.hero}
+    imageAlt={heroAlt}
+  />
 
   {/*
     The body is a `section`, not an `article`: a service page’s copy is not a
@@ -102,17 +121,20 @@ const schema = [
     <div class="l-page">
       <div class="l-split">
         <div>
-          <Figure
-            class="offering__hero"
-            image={
-              data.hero
-                ? { src: data.hero.src, width: data.hero.width, height: data.hero.height }
-                : placeholderAt(`${collection}-${entry.id}`, 'wide', heroAlt)
-            }
-            alt={heroAlt}
-            ratio="16 / 9"
-            eager
-          />
+          {/*
+            The photograph moved into the page header, where it is beside the
+            H1 rather than under it. An entry without one still gets a labelled
+            placeholder here rather than nothing — the header only splits when
+            there is a real image to split it with.
+          */}
+          {!data.hero && (
+            <Figure
+              class="offering__hero"
+              image={placeholderAt(`${collection}-${entry.id}`, 'wide', heroAlt)}
+              alt={heroAlt}
+              ratio="16 / 9"
+            />
+          )}
 
           <div class="l-rail offering__body">
             <p class="l-rail__mark u-label">Detail</p>
@@ -132,6 +154,9 @@ const schema = [
           <p class="c-kicker">
             <span class="c-tick" aria-hidden="true" />
             <span class="u-label">{SECTIONS[collection].label}</span>
+          </p>
+          <p class="offering__aside-mark" aria-hidden="true">
+            <Icon name={entry.id} />
           </p>
           <p class="offering__aside-title">{data.navLabel}</p>
           <p class="offering__aside-note">{data.summary}</p>
@@ -160,36 +185,69 @@ const schema = [
     </div>
   </section>
 
+  {/*
+    The closing action, and the band this template was missing entirely. A
+    reader who has just read what a wheel alignment involves and decided they
+    want one had, until now, the sticky panel four screens up or the footer.
+    The live site puts the number in a heading at exactly this point on the
+    page; so does this.
+  */}
+  <CtaBand
+    id="offering-cta"
+    kicker={SECTIONS[collection].label}
+    heading={`Book ${data.navLabel.toLowerCase()} in ${site.address.locality}`}
+    lede={`Call the shop and talk to someone who does this work, or send the details and we will come back to you with a time.`}
+  />
+
   <Faqs items={faqs} />
 
   {
     related.length > 0 && (
       <section class="l-band l-band--ground-2" aria-labelledby="related-heading">
         <div class="l-page">
-          <div class="l-rail">
-            <p class="l-rail__mark u-label">Also</p>
-            <div class="l-rail__body">
-              <h2 id="related-heading">Related {SECTIONS[collection].label.toLowerCase()}</h2>
-              <EntryList
-                numbered={false}
-                items={related.map((item) => ({
-                  href: entryPath(collection, item.id),
-                  title: item.data.navLabel,
-                  summary: item.data.summary,
-                }))}
-              />
-            </div>
-          </div>
+          <SectionHead
+            kicker="Also"
+            heading={`Related ${SECTIONS[collection].label.toLowerCase()}`}
+            id="related-heading"
+            lede={`Work that usually turns up alongside ${data.navLabel.toLowerCase()}.`}
+            more={{ href: SECTIONS[collection].index!, label: `All ${SECTIONS[collection].label.toLowerCase()}` }}
+          />
+
+          {/*
+            Cards rather than the hairline rows this band used to be. The rows
+            are right on an index, where the reader is scanning fourteen of
+            them; here there are three, each has a photograph now, and a
+            picture of the job is a better reason to click than its name.
+          */}
+          <OfferingCards {collection} entries={related} />
         </div>
       </section>
     )
   }
+
+  <Quotes items={testimonials} id={`quotes-${entry.id}`} />
 </BaseLayout>
 
 <style>
   .offering__hero { margin-block-end: var(--s-6); }
 
   .offering__body { border-block-start: 0; padding-block-start: 0; }
+  .offering__hero + .offering__body { padding-block-start: var(--s-2); }
+
+  /*
+   * The same tile the menu and the cards use, so the drawing of a job is the
+   * same drawing everywhere it appears — the panel, the card, the mega menu.
+   */
+  .offering__aside-mark {
+    display: grid;
+    place-items: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    margin-block-start: var(--s-3);
+    border-radius: var(--r-2);
+    background: var(--c-wash-blue);
+    color: var(--c-blue-deep);
+  }
 
   .offering__aside-title {
     font-size: var(--t-h3);
