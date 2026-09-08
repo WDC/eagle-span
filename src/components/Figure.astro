@@ -1,4 +1,6 @@
 ---
+import { getImage } from 'astro:assets';
+
 import type { PlaceholderImage } from '~/lib/placeholders.ts';
 
 /*
@@ -16,7 +18,7 @@ import type { PlaceholderImage } from '~/lib/placeholders.ts';
  * — and repeating it would be the badge, not the picture, being announced.
  */
 interface Props {
-  image: PlaceholderImage | { src: string; width: number; height: number; isPlaceholder?: undefined };
+  image: PlaceholderImage | ImageMetadata | { src: string; width: number; height: number; isPlaceholder?: undefined };
   alt: string;
   /** CSS aspect ratio for the frame, e.g. "16 / 9". Defaults to 3 / 2. */
   ratio?: string | undefined;
@@ -26,18 +28,62 @@ interface Props {
   zoom?: boolean | undefined;
   caption?: string | undefined;
   class?: string | undefined;
+  /**
+   * The `sizes` attribute — how wide this figure actually renders. Without it a
+   * browser assumes 100vw and downloads the 1600 for a card three to a row.
+   */
+  sizes?: string | undefined;
 }
 
-const { image, alt, ratio, eager = false, zoom = false, caption, class: className } = Astro.props;
+const {
+  image,
+  alt,
+  ratio,
+  eager = false,
+  zoom = false,
+  caption,
+  class: className,
+  sizes = '(width >= 64rem) 60vw, 100vw',
+} = Astro.props;
 
 const isPlaceholder = 'isPlaceholder' in image && image.isPlaceholder === true;
+
+/*
+ * Real photography goes through `astro:assets`; placeholders do not.
+ *
+ * The distinction is `format` — an `ImageMetadata` from `image()` in the
+ * content schema carries one, and the two hand-built shapes (a placeholder
+ * from the CDN, a plain src/width/height) do not. Only the first can be
+ * resized at build time, so only the first gets a `srcset`.
+ *
+ * This matters more than it looks. The shop photographs are 2000px on the long
+ * edge, and the pass that added them put one at the top of all thirty pages.
+ * Served as-is that is a 400 KB download to fill a 700px column on a phone;
+ * through here it is four widths and the browser picks one. The widths are
+ * capped at the source width, because upscaling a photograph to fill a srcset
+ * slot ships bytes that carry no detail.
+ */
+const isProcessable = typeof image === 'object' && 'format' in image;
+
+const WIDTHS = [480, 800, 1200, 1600, 2000];
+
+const processed = isProcessable
+  ? await getImage({
+      src: image as ImageMetadata,
+      widths: WIDTHS.filter((width) => width <= (image as ImageMetadata).width),
+      format: 'webp',
+      quality: 78,
+    })
+  : null;
 
 const classes = ['c-figure', zoom && 'c-figure--zoom', className].filter(Boolean).join(' ');
 ---
 
 <figure class={classes} style={ratio ? `--ratio: ${ratio};` : undefined} data-placeholder={isPlaceholder ? '' : undefined}>
   <img
-    src={image.src}
+    src={processed?.src ?? image.src}
+    srcset={processed?.srcSet.attribute || undefined}
+    sizes={processed ? sizes : undefined}
     alt={alt}
     width={image.width}
     height={image.height}

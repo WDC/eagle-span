@@ -105,9 +105,7 @@ const schema = [
           <Figure
             class="offering__hero"
             image={
-              data.hero
-                ? { src: data.hero.src, width: data.hero.width, height: data.hero.height }
-                : placeholderAt(`${collection}-${entry.id}`, 'wide', heroAlt)
+              data.hero ?? placeholderAt(`${collection}-${entry.id}`, 'wide', heroAlt)
             }
             alt={heroAlt}
             ratio="16 / 9"
