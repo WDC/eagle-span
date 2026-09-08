@@ -1,5 +1,12 @@
 ---
 import { getImage } from 'astro:assets';
+/*
+ * `ImageMetadata` is an Astro ambient global, and ESLint's `no-undef` has no
+ * way to know that — a type it cannot see used in a type position reads as an
+ * undefined identifier. Importing it from `astro` says the same thing to
+ * TypeScript and stops the lint being a lie.
+ */
+import type { ImageMetadata } from 'astro';
 
 import type { PlaceholderImage } from '~/lib/placeholders.ts';
 
