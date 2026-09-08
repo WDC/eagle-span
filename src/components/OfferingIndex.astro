@@ -2,10 +2,12 @@
 import { render } from 'astro:content';
 
 import BaseLayout from '~/layouts/BaseLayout.astro';
-import EntryList from '~/components/EntryList.astro';
+import CtaBand from '~/components/CtaBand.astro';
+import OfferingCards from '~/components/OfferingCards.astro';
 import PageHeader from '~/components/PageHeader.astro';
-import { getSingleton, listOfferings } from '~/lib/content.ts';
-import { SECTIONS, entryPath, pageCrumbs } from '~/lib/routes.ts';
+import Quotes from '~/components/Quotes.astro';
+import { getSingleton, listOfferings, listTestimonials } from '~/lib/content.ts';
+import { SECTIONS, pageCrumbs } from '~/lib/routes.ts';
 
 /*
  * `/service` and `/repair`: the two pages Phase 0 found orphaned.
@@ -26,6 +28,7 @@ const { collection, singleton } = Astro.props;
 
 const page = await getSingleton(singleton);
 const entries = await listOfferings(collection);
+const testimonials = await listTestimonials();
 const { Content } = await render(page);
 
 const path = SECTIONS[collection].index!;
@@ -47,29 +50,51 @@ const crumbs = pageCrumbs(SECTIONS[collection].label, path);
     title={page.data.title}
     lede={page.data.lede}
     {crumbs}
+    image={page.data.hero}
+    imageAlt={page.data.heroAlt}
   />
 
+  {/*
+    Cards, not the hairline rows this page used to be.
+
+    The rows were a deliberate choice and the reasoning was sound as far as it
+    went — an index of everything is a list, and the homepage kept the only card
+    grid because five things a visitor chooses between is not the same as
+    fourteen. What it missed is that this page IS the choosing: a reader who
+    opens /repair has a symptom and no vocabulary, and nine names in a column
+    ask them to already know which one it is. Every entry has a photograph of
+    the job now, which is the thing that answers that question fastest.
+  */}
   <section class="l-band" aria-label={SECTIONS[collection].label}>
     <div class="l-page">
-      <EntryList
-        empty={`No ${SECTIONS[collection].label.toLowerCase()} are published yet.`}
-        items={entries.map((entry) => ({
-          href: entryPath(collection, entry.id),
-          title: entry.data.navLabel,
-          summary: entry.data.summary,
-        }))}
-      />
+      {entries.length > 0 ? (
+        <OfferingCards {collection} {entries} />
+      ) : (
+        <p>No {SECTIONS[collection].label.toLowerCase()} are published yet.</p>
+      )}
     </div>
   </section>
 
-  <section class="l-band l-band--ground-2" aria-label="About this section">
+  <section class="l-band l-band--ground-2" aria-labelledby="index-note">
     <div class="l-page">
       <div class="l-rail">
         <p class="l-rail__mark u-label">Note</p>
         <div class="l-rail__body">
+          <h2 id="index-note" class="u-visually-hidden">
+            About {SECTIONS[collection].label.toLowerCase()} at this shop
+          </h2>
           <Content />
         </div>
       </div>
     </div>
   </section>
+
+  <Quotes items={testimonials} id={`quotes-${collection}`} />
+
+  <CtaBand
+    id="index-cta"
+    kicker={SECTIONS[collection].label}
+    heading="Not sure which one you need?"
+    lede="Describe what the truck is doing and we will tell you what it is, what it takes to fix and how long the bay is booked for."
+  />
 </BaseLayout>

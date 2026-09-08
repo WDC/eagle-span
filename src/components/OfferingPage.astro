@@ -101,7 +101,15 @@ const schema = [
   image={data.seo.image?.src}
   imageAlt={data.seo.image ? data.title : undefined}
 >
-  <PageHeader {mark} title={data.title} lede={data.summary} {crumbs} {path} />
+  <PageHeader
+    {mark}
+    title={data.title}
+    lede={data.summary}
+    {crumbs}
+    {path}
+    image={data.hero}
+    imageAlt={heroAlt}
+  />
 
   {/*
     The body is a `section`, not an `article`: a service page’s copy is not a
@@ -113,15 +121,20 @@ const schema = [
     <div class="l-page">
       <div class="l-split">
         <div>
-          <Figure
-            class="offering__hero"
-            image={
-              data.hero ?? placeholderAt(`${collection}-${entry.id}`, 'wide', heroAlt)
-            }
-            alt={heroAlt}
-            ratio="16 / 9"
-            eager
-          />
+          {/*
+            The photograph moved into the page header, where it is beside the
+            H1 rather than under it. An entry without one still gets a labelled
+            placeholder here rather than nothing — the header only splits when
+            there is a real image to split it with.
+          */}
+          {!data.hero && (
+            <Figure
+              class="offering__hero"
+              image={placeholderAt(`${collection}-${entry.id}`, 'wide', heroAlt)}
+              alt={heroAlt}
+              ratio="16 / 9"
+            />
+          )}
 
           <div class="l-rail offering__body">
             <p class="l-rail__mark u-label">Detail</p>
@@ -219,6 +232,7 @@ const schema = [
   .offering__hero { margin-block-end: var(--s-6); }
 
   .offering__body { border-block-start: 0; padding-block-start: 0; }
+  .offering__hero + .offering__body { padding-block-start: var(--s-2); }
 
   /*
    * The same tile the menu and the cards use, so the drawing of a job is the

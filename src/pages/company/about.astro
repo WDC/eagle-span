@@ -2,11 +2,15 @@
 import { render } from 'astro:content';
 
 import BaseLayout from '~/layouts/BaseLayout.astro';
+import CtaBand from '~/components/CtaBand.astro';
 import Figure from '~/components/Figure.astro';
 import PageHeader from '~/components/PageHeader.astro';
-import { getSingleton } from '~/lib/content.ts';
-import { placeholderAt } from '~/lib/placeholders.ts';
+import Quotes from '~/components/Quotes.astro';
+import { getSingleton, listTestimonials } from '~/lib/content.ts';
 import { PAGES, pageCrumbs } from '~/lib/routes.ts';
+
+import shopBays from '~/assets/photos/shop-bays.webp';
+import techAtWheel from '~/assets/photos/tech-at-front-wheel.webp';
 
 /*
  * `/company/about`. `data/redirects.csv` also sends the bare `/company` here,
@@ -18,11 +22,13 @@ const { Content } = await render(page);
 const path = PAGES.about;
 const crumbs = pageCrumbs('About', path);
 
-/* The shop, its people and its equipment — the shoot that is still a blocker. */
+/* The shop, its people and its equipment. */
 const shots = [
-  placeholderAt('about-exterior', 'card', 'Placeholder — the shop building and yard from the street'),
-  placeholderAt('about-team', 'card', 'Placeholder — the technicians on the shop floor'),
+  { image: shopBays, alt: 'The Eagle Span service bays in Charlotte, with heavy-duty trucks on the racks' },
+  { image: techAtWheel, alt: 'A technician at the front wheel of a truck inside the Charlotte shop' },
 ];
+
+const testimonials = await listTestimonials();
 ---
 
 <BaseLayout
@@ -35,7 +41,14 @@ const shots = [
   canonical={page.data.seo.canonical}
   image={page.data.seo.image?.src}
 >
-  <PageHeader mark="About" title={page.data.title} lede={page.data.lede} {crumbs} />
+  <PageHeader
+    mark="About"
+    title={page.data.title}
+    lede={page.data.lede}
+    {crumbs}
+    image={page.data.hero}
+    imageAlt={page.data.heroAlt}
+  />
 
   <div class="l-band">
     <div class="l-page">
@@ -46,13 +59,31 @@ const shots = [
             <Content />
 
             <div class="about__shots">
-              {shots.map((shot) => <Figure image={shot} alt={shot.alt} ratio="4 / 3" class="u-reveal-item" />)}
+              {
+                shots.map((shot) => (
+                  <Figure
+                    image={shot.image}
+                    alt={shot.alt}
+                    ratio="4 / 3"
+                    sizes="(width >= 64rem) 20rem, 92vw"
+                    class="u-reveal-item"
+                  />
+                ))
+              }
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+  <Quotes items={testimonials} />
+
+  <CtaBand
+    id="about-cta"
+    kicker="Next"
+    heading="Bring a truck to the shop"
+    lede="Call and talk to someone who works on these trucks, or send the details and we will come back to you with a time."
+  />
 </BaseLayout>
 
 <style>

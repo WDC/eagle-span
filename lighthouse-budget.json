@@ -12,7 +12,7 @@
       { "resourceType": "total", "budget": 1200 }
     ],
     "resourceCounts": [
-      { "resourceType": "third-party", "budget": 24 }
+      { "resourceType": "third-party", "budget": 0 }
     ]
   }
 ]

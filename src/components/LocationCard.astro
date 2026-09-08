@@ -1,7 +1,8 @@
 ---
 import Figure from '~/components/Figure.astro';
-import { placeholderAt } from '~/lib/placeholders.ts';
 import { site, staticMap } from '~/site.config.ts';
+
+import shopFront from '~/assets/photos/shop-bays.webp';
 
 /*
  * Where the shop is, as data.
@@ -11,15 +12,20 @@ import { site, staticMap } from '~/site.config.ts';
  * listing, which is what a reader actually needs; the picture is an
  * improvement on that, not a prerequisite for it.
  *
- * Until the static map exists the slot holds a labelled placeholder rather
- * than nothing. An empty rectangle beside an address reads as a broken embed;
- * a picture that says “Placeholder” reads as a picture that has not arrived,
- * which is the truth.
+ * Until the static map exists the slot holds a photograph of the shop rather
+ * than a placeholder. That was the right call while nothing real existed —
+ * a picture that says “Placeholder” reads as a picture that has not arrived —
+ * and it is the wrong one now that the photography is in: a broken CDN frame
+ * with a badge on it sits directly beside the address on /contact, which is
+ * the page a reader opens when they are trying to reach the place.
+ *
+ * The link is still the map. What is under it is the building the link leads
+ * to, which is a better answer to “is this the right place” than a grey square.
  *
  * Every string below renders from site.config, so this is one more place the
  * phone number cannot pick up a sixth format.
  */
-const mapAlt = 'Placeholder — a map of the shop location on Beasley Lane';
+const mapAlt = 'The Eagle Span shop floor in Charlotte, on Beasley Lane';
 ---
 
 <div class="location c-panel">
@@ -33,7 +39,7 @@ const mapAlt = 'Placeholder — a map of the shop location on Beasley Lane';
           zoom
         />
       ) : (
-        <Figure image={placeholderAt('location-map', 'map', mapAlt)} alt={mapAlt} ratio="3 / 2" zoom />
+        <Figure image={shopFront} alt={mapAlt} ratio="3 / 2" sizes="(width >= 52rem) 22rem, 92vw" zoom />
       )
     }
     <span class="u-visually-hidden">Open the shop location in Google Maps (opens in a new tab)</span>

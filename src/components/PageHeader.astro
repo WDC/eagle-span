@@ -1,5 +1,8 @@
 ---
+import type { ImageMetadata } from 'astro';
+
 import Breadcrumbs from '~/components/Breadcrumbs.astro';
+import Figure from '~/components/Figure.astro';
 import { transitionName } from '~/lib/routes.ts';
 import type { Crumb } from '~/lib/schema.ts';
 
@@ -16,6 +19,14 @@ import type { Crumb } from '~/lib/schema.ts';
  * carries the heading across the navigation. It is optional because most pages
  * have no row pointing at them — nothing lists /contact — and a name with no
  * partner is a name for the sake of it.
+ *
+ * `image` is why this file changed. Every page on the site opened with a
+ * heading and a lede on a wash, and the photograph — where a template had one
+ * at all — was the first thing in the body, below the fold on a laptop. That
+ * is the arrangement that made thirteen pages read as a document rather than
+ * as a page. With one, the header becomes a split: the copy on the measurement
+ * rail, the photograph beside it, the wash and the drafting grid running under
+ * both. Without one it is exactly what it was.
  */
 interface Props {
   mark?: string | undefined;
@@ -24,30 +35,48 @@ interface Props {
   crumbs?: readonly Crumb[] | undefined;
   /** This page's own path, when an index links to it. Names the title morph. */
   path?: string | undefined;
+  /** The page's photograph. Turns the header into a split. */
+  image?: ImageMetadata | undefined;
+  imageAlt?: string | undefined;
 }
 
-const { mark, title, lede, crumbs = [], path } = Astro.props;
+const { mark, title, lede, crumbs = [], path, image, imageAlt } = Astro.props;
 ---
 
-<header class="pagehead">
-  <div class="l-page l-rail pagehead__rail">
-    <p class="l-rail__mark u-label u-tabular">{mark}</p>
-    <div class="l-rail__body l-stack">
-      <Breadcrumbs {crumbs} />
-      {/*
-        Two branches rather than one `transition:name={path ? … : undefined}`,
-        and rather than spreading the attribute in. `transition:name` is a
-        compiler directive, not an attribute: written literally it becomes a
-        scope class and a `view-transition-name` rule, and passed through a
-        spread it is emitted verbatim into the HTML as `transition:name="…"`,
-        which no browser has ever read. The page looks right and the morph
-        silently does not happen — `verify:motion` checks the built output for
-        that exact string, because it is invisible everywhere else.
-      */}
-      {path ? <h1 transition:name={transitionName(path)}>{title}</h1> : <h1>{title}</h1>}
-      {lede && <p class="pagehead__lede">{lede}</p>}
-      <slot />
+<header class:list={['pagehead', image && 'pagehead--split']}>
+  <div class="l-page pagehead__inner">
+    <div class="l-rail pagehead__rail">
+      <p class="l-rail__mark u-label u-tabular">{mark}</p>
+      <div class="l-rail__body l-stack">
+        <Breadcrumbs {crumbs} />
+        {/*
+          Two branches rather than one `transition:name={path ? … : undefined}`,
+          and rather than spreading the attribute in. `transition:name` is a
+          compiler directive, not an attribute: written literally it becomes a
+          scope class and a `view-transition-name` rule, and passed through a
+          spread it is emitted verbatim into the HTML as `transition:name="…"`,
+          which no browser has ever read. The page looks right and the morph
+          silently does not happen — `verify:motion` checks the built output for
+          that exact string, because it is invisible everywhere else.
+        */}
+        {path ? <h1 transition:name={transitionName(path)}>{title}</h1> : <h1>{title}</h1>}
+        {lede && <p class="pagehead__lede">{lede}</p>}
+        <slot />
+      </div>
     </div>
+
+    {
+      image && (
+        <Figure
+          class="pagehead__shot"
+          {image}
+          alt={imageAlt ?? title}
+          ratio="4 / 3"
+          sizes="(width >= 64rem) 40vw, 92vw"
+          eager
+        />
+      )
+    }
   </div>
 </header>
 
@@ -86,6 +115,27 @@ const { mark, title, lede, crumbs = [], path } = Astro.props;
 
   /* The rail's own rule would double the band's edge. */
   .pagehead__rail { border-block-start: 0; padding-block-start: 0; }
+
+  /*
+   * One column until there is a photograph and room for it. The copy keeps the
+   * measurement rail it has always sat on; the picture takes the space to its
+   * right, which on a page whose header used to be four lines of text is the
+   * whole difference between arriving somewhere and arriving at a document.
+   */
+  .pagehead__inner {
+    display: grid;
+    gap: var(--s-5) var(--gutter);
+    align-items: center;
+  }
+
+  @media (width >= 60rem) {
+    .pagehead--split .pagehead__inner { grid-template-columns: minmax(0, 1fr) minmax(0, 22rem); }
+  }
+
+  .pagehead__shot { margin: 0; }
+
+  /* A split header needs more air under it than a text one. */
+  .pagehead--split { padding-block: var(--s-6) var(--s-7); }
 
   .pagehead__lede {
     font-size: var(--t-lead);
