@@ -87,6 +87,13 @@ jobs:
       - name: Sitemap
         run: bun run verify:sitemap
 
+      # The files something asks for before it asks for a page: llms.txt, the
+      # icons and the robots line that points at them. llms.txt is generated
+      # from the same page inventory as the sitemap, which is what makes it
+      # trustworthy — this is the check that notices when it stops being.
+      - name: Agent and crawler metadata
+        run: bun run verify:metadata
+
       # Motion is opt-in and the resting state is the final frame: every
       # animation sits behind `prefers-reduced-motion: no-preference`, none of
       # them fills forwards, and the built homepage reads 0.00° without ever

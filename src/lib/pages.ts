@@ -7,11 +7,12 @@ import { site } from '~/site.config.ts';
 /**
  * Every page this site builds, as data.
  *
- * Two things need this list and neither of them is a template: the sitemap
- * needs a `lastmod` per URL, and `src/pages/og/[...slug].png.ts` needs to render
- * one image per page. Both were going to end up re-deriving "what pages exist"
- * from the collections, and a third copy of that derivation is a third place
- * for a page to be missed.
+ * Three things need this list and none of them is a template: the sitemap needs
+ * a `lastmod` per URL, `src/pages/og/[...slug].png.ts` needs to render one image
+ * per page, and `src/pages/llms.txt.ts` needs to name every page an agent should
+ * read. All three were going to end up re-deriving "what pages exist" from the
+ * collections, and a second copy of that derivation is a second place for a
+ * page to be missed.
  *
  * It is deliberately *not* what the templates route from. A template already
  * has the entry in hand and needs its body, its FAQs and its related entries;
@@ -28,6 +29,8 @@ export interface SitePage {
   description: string;
   /** Held back from the index, and therefore from the sitemap. */
   noindex: boolean;
+  /** Which part of the site this is. `src/pages/llms.txt.ts` groups by it. */
+  group: PageGroup;
   /**
    * The entry's file, relative to the repository root. `src/lib/lastmod.ts`
    * asks git when it was last changed, for the pages whose schema carries no
@@ -41,6 +44,21 @@ export interface SitePage {
    */
   contentDate?: Date | undefined;
 }
+
+/**
+ * Which part of the site a page belongs to, for the consumer that presents the
+ * inventory as a grouped list rather than as a flat one.
+ *
+ * It is set here, where the collection each page came from is still known,
+ * rather than inferred downstream from a path: `/company/about` and
+ * `/company/privacy-policy` share a prefix and are not the same kind of thing,
+ * and a consumer that guessed would have to be corrected every time one of them
+ * moved. `legal` is separate from `company` for exactly that reason — llms.txt
+ * files it under the spec's `## Optional`, the heading that says *skip this if
+ * you are short of context*, which is true of a privacy policy and false of the
+ * about page.
+ */
+export type PageGroup = 'primary' | 'services' | 'repairs' | 'articles' | 'company' | 'legal';
 
 /**
  * `filePath` comes off the glob loader relative to the project root already,
@@ -57,12 +75,19 @@ function sourceOf(entry: { filePath?: string }): string | undefined {
 
 type Routed = CollectionEntry<'services' | 'repairs' | 'articles' | 'legal'>;
 
-const fromEntry = (entry: Routed, path: string, eyebrow: string, contentDate?: Date): SitePage => ({
+const fromEntry = (
+  entry: Routed,
+  path: string,
+  eyebrow: string,
+  group: PageGroup,
+  contentDate?: Date,
+): SitePage => ({
   path,
   title: entry.data.seo.title,
   eyebrow,
   description: entry.data.seo.description,
   noindex: entry.data.seo.noindex,
+  group,
   source: sourceOf(entry),
   contentDate,
 });
@@ -90,24 +115,26 @@ export async function listSitePages(): Promise<SitePage[]> {
     entry: { data: { seo: { title: string; description: string; noindex: boolean } }; filePath?: string },
     path: string,
     eyebrow: string,
+    group: PageGroup,
   ): SitePage => ({
     path,
     title: entry.data.seo.title,
     eyebrow,
     description: entry.data.seo.description,
     noindex: entry.data.seo.noindex,
+    group,
     source: sourceOf(entry),
   });
 
   return [
-    singleton(home, PAGES.home, `${site.address.locality}, ${site.address.region}`),
-    singleton(servicesIndex, SECTIONS.services.index!, SECTIONS.services.label),
-    singleton(repairsIndex, SECTIONS.repairs.index!, SECTIONS.repairs.label),
-    singleton(articlesIndex, SECTIONS.articles.index!, SECTIONS.articles.label),
-    singleton(about, PAGES.about, 'Company'),
-    singleton(careers, PAGES.careers, 'Company'),
-    singleton(contact, PAGES.contact, 'Contact'),
-    singleton(fleet, PAGES.fleet, 'Fleet'),
+    singleton(home, PAGES.home, `${site.address.locality}, ${site.address.region}`, 'primary'),
+    singleton(servicesIndex, SECTIONS.services.index!, SECTIONS.services.label, 'services'),
+    singleton(repairsIndex, SECTIONS.repairs.index!, SECTIONS.repairs.label, 'repairs'),
+    singleton(articlesIndex, SECTIONS.articles.index!, SECTIONS.articles.label, 'articles'),
+    singleton(about, PAGES.about, 'Company', 'company'),
+    singleton(careers, PAGES.careers, 'Company', 'company'),
+    singleton(contact, PAGES.contact, 'Contact', 'primary'),
+    singleton(fleet, PAGES.fleet, 'Fleet', 'primary'),
 
     /*
      * The form's landing page. It has no entry — it is a receipt rather than
@@ -122,21 +149,27 @@ export async function listSitePages(): Promise<SitePage[]> {
       eyebrow: 'Contact',
       description: 'Your message is with the shop. We answer during shop hours.',
       noindex: true,
+      group: 'primary',
       source: 'src/pages/contact/thanks.astro',
     },
 
-    ...services.map((entry) => fromEntry(entry, entryPath('services', entry.id), SECTIONS.services.label)),
-    ...repairs.map((entry) => fromEntry(entry, entryPath('repairs', entry.id), SECTIONS.repairs.label)),
+    ...services.map((entry) =>
+      fromEntry(entry, entryPath('services', entry.id), SECTIONS.services.label, 'services'),
+    ),
+    ...repairs.map((entry) =>
+      fromEntry(entry, entryPath('repairs', entry.id), SECTIONS.repairs.label, 'repairs'),
+    ),
     ...articles.map((entry) =>
       fromEntry(
         entry,
         entryPath('articles', entry.id),
         SECTIONS.articles.label,
+        'articles',
         entry.data.updatedAt ?? entry.data.publishedAt,
       ),
     ),
     ...legal.map((entry) =>
-      fromEntry(entry, entryPath('legal', entry.id), SECTIONS.legal.label, entry.data.effectiveDate),
+      fromEntry(entry, entryPath('legal', entry.id), SECTIONS.legal.label, 'legal', entry.data.effectiveDate),
     ),
   ];
 }

@@ -30,6 +30,7 @@ bun run dev
 | `bun run verify:static-build` | One serverless function and only the three routes allowed to reach it, no `/keystatic` route, no Keystatic in the output |
 | `bun run verify:jsonld` | JSON-LD parses, NAP matches `site.config`, canonical present, a `Service` node on all 14 offering pages, breadcrumbs and FAQ text visible on the page, `og:image` in the build |
 | `bun run verify:sitemap` | The sitemap and the built site list the same pages, `noindex` on neither side, real dates, `robots.txt` names it |
+| `bun run verify:metadata` | `llms.txt` and the built site list the same pages, its NAP is the one format, every declared icon is a file the build produced, `robots.txt` names llms.txt |
 | `bun run verify:motion` | Every animation behind `prefers-reduced-motion: no-preference`, no forwards fill on a time-driven animation, both ends of the title morph derived from one function, no literal `transition:name` in the build, the hero readout resting at 0.00° |
 | `bun run verify:forms` | Both forms in the built HTML, every field against the manifest, `method`/`action`/`enctype` so they submit with no JavaScript, the honeypot out of the tab order, and every `tel:` link carrying the click-to-call hook |
 | `bun run verify:redirects <origin>` | One hop, right destination, and a live destination for pages this build produces |
@@ -357,6 +358,48 @@ The email variables have nothing correct to be set to yet: the mailbox
 (`service@eaglespancorp.com`) and the sending domain verification are both open
 blockers. With ClickUp configured and Resend not, a lead still reaches the shop.
 
+## Agents and crawlers
+
+Four files exist for something that reads the site rather than looks at it, and
+all four are generated so none of them can describe a site this build does not
+produce. `verify:metadata` checks them against `dist/`.
+
+* **`/llms.txt`** — the site index in the llmstxt.org shape: an H1, a summary
+  blockquote, the NAP, and `- [title](url): description` rows under section
+  headings. It is built by `src/pages/llms.txt.ts` from `listSitePages()`, the
+  same inventory the sitemap and the OG cards come from, so a page cannot be in
+  one and missing from another, and a `noindex` page is in none of them. Legal
+  pages go under the proposal's `## Optional`, which means *skip this if you are
+  short of context*.
+
+  There is no `llms-full.txt`. Every page here is server-rendered HTML on this
+  origin with nothing behind script, so a concatenated corpus would be a second
+  copy of content a fetch already returns — and a second copy is one that goes
+  stale.
+
+* **`/robots.txt`** — nothing is disallowed, the AI crawlers included. This is a
+  shop that wants to be found, and an assistant asked where to get a truck
+  aligned in Charlotte should be able to read the answer. It names the sitemap
+  as a directive and llms.txt as a comment, because llms.txt has no directive to
+  be named by.
+
+* **`/favicon.svg` and `/apple-touch-icon.png`** — the site shipped no icon at
+  all until now: no `rel="icon"`, no `/favicon.ico`, so every browser and
+  crawler that asked for one got a 404, and Google, which shows a favicon beside
+  every mobile search result, had nothing to show. Both are drawn by
+  `src/lib/icon.ts` and rasterised by the same resvg the OG cards use, so there
+  is one drawing and two encodings.
+
+  **The mark is a stand-in**, like the photography. The real logo is a lockup —
+  an eagle under an arc over a two-colour wordmark — and at 16 pixels it is a
+  grey smudge; cropping a mark out of it is a design decision with a designer in
+  it. So the icon draws the one element of the logo that survives being small,
+  in the site's own tokens. Replacing it is replacing `MARK` in that file.
+
+`CLAUDE.md` at the root is the other half of this: the same idea pointed at a
+coding agent rather than a crawler. `AGENTS.md` is a symlink to it, so the tools
+that look for that name find the same file rather than a second copy of it.
+
 ## NAP
 
 `src/site.config.ts` is the only place a phone number, address or set of hours
@@ -387,12 +430,14 @@ src/
   integrations/ dev-only Keystatic wiring
   layouts/    BaseLayout
   lib/        schema graph, routes, page inventory, lastmod, OG renderer,
-              text pipeline, remark plugin, content and tag manifests
+              icon, text pipeline, remark plugin, content and tag manifests
     forms/    the field manifest, validation, spam screening, delivery
-  pages/      routes, plus sitemap.xml, robots.txt, the /og/*.png endpoint
+  pages/      routes, plus sitemap.xml, robots.txt, llms.txt, favicon.svg,
+              apple-touch-icon.png, the /og/*.png endpoint
               and api/contact.ts — the one on-demand route
   styles/     tokens.css, fonts.css (generated), global.css
 
+CLAUDE.md              the agent guide (AGENTS.md is a symlink to it)
 keystatic.config.ts    the editor — collections, singletons, fields
 markdoc.config.mjs     the tag schemas, built from src/lib/markdoc-tags.ts
 src/content.config.ts  the gate — a Zod schema per collection
