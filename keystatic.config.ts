@@ -551,6 +551,17 @@ export default config({
           }),
           { label: 'Open roles', itemLabel: (props) => props.fields.role.value || 'Role' },
         ),
+        formIntro: fields.text({
+          label: 'Above the application form',
+          multiline: true,
+          validation: { length: { min: 1, max: 320 } },
+        }),
+        formSuccess: fields.text({
+          label: 'After sending',
+          description: 'Shown once an application has been submitted.',
+          multiline: true,
+          validation: { length: { min: 1, max: 320 } },
+        }),
         seo: seoField(),
         content: contentField(),
       },

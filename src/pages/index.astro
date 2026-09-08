@@ -87,7 +87,7 @@ const shopShots = [
         <p class="hero__lede">{hero.lede}</p>
 
         <div class="hero__actions">
-          <a class="c-btn c-btn--primary" href={`tel:${site.phoneE164}`}>
+          <a class="c-btn c-btn--primary" href={`tel:${site.phoneE164}`} data-conversion="call">
             <span class="u-tabular u-nowrap">{site.phoneDisplay}</span>
           </a>
           <a class="c-btn c-btn--ghost" href={PAGES.contact}>
@@ -178,7 +178,7 @@ const shopShots = [
               <dl class="facts">
                 <div class="facts__row">
                   <dt class="u-label">Phone</dt>
-                  <dd><a class="u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>{site.phoneDisplay}</a></dd>
+                  <dd><a class="u-tabular u-nowrap" href={`tel:${site.phoneE164}`} data-conversion="call">{site.phoneDisplay}</a></dd>
                 </div>
                 <div class="facts__row">
                   <dt class="u-label">Hours</dt>
@@ -379,7 +379,7 @@ const shopShots = [
       </div>
 
       <div class="cta-band__actions">
-        <a class="c-btn c-btn--primary cta-band__call" href={`tel:${site.phoneE164}`}>
+        <a class="c-btn c-btn--primary cta-band__call" href={`tel:${site.phoneE164}`} data-conversion="call">
           <span class="u-tabular u-nowrap">{site.phoneDisplay}</span>
         </a>
         <a class="c-btn c-btn--ghost" href={PAGES.contact}>

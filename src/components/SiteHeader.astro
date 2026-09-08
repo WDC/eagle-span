@@ -69,7 +69,7 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
     </nav>
 
     <div class="masthead__action">
-      <a class="masthead__phone u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>
+      <a class="masthead__phone u-tabular u-nowrap" href={`tel:${site.phoneE164}`} data-conversion="call">
         <svg class="masthead__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
           <path
             d="M5.2 2.5 6.6 5.3 5.3 6.6a8.4 8.4 0 0 0 4.1 4.1l1.3-1.3 2.8 1.4v2.1c0 .6-.5 1-1.1 1A11.6 11.6 0 0 1 1.4 2.6c0-.6.5-1.1 1-1.1h2.1z"
@@ -114,7 +114,7 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
 
         <div class="menu__actions">
           <a class="c-btn c-btn--primary c-btn--block" href={cta.href}>{cta.label}</a>
-          <a class="c-btn c-btn--ghost c-btn--block u-tabular u-nowrap" href={`tel:${site.phoneE164}`}>
+          <a class="c-btn c-btn--ghost c-btn--block u-tabular u-nowrap" href={`tel:${site.phoneE164}`} data-conversion="call">
             {site.phoneDisplay}
           </a>
         </div>

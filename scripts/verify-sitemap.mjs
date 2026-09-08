@@ -31,8 +31,10 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, resolve } from 'node:path';
 
+import { staticRoot } from './lib/dist.mjs';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const dist = resolve(root, 'dist');
+const dist = staticRoot(root);
 
 const { site } = await import('../src/site.config.ts');
 

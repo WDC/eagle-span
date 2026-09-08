@@ -99,16 +99,37 @@ const config = {
           value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
         },
         {
-          // No third-party scripts, no Maps iframe: the static map image
-          // replaced it. Keeps the CSP tight enough to be worth having.
+          /*
+           * Three origins, and each one is a decision that has to be re-made
+           * when the thing behind it changes.
+           *
+           * `challenges.cloudflare.com` is Turnstile (Phase 5). It needs a
+           * script, a frame and a fetch back to itself; nothing else on this
+           * site loads a third-party script, and this is the only entry that
+           * makes `script-src` more than `'self'`. It stays as long as the
+           * forms use Turnstile.
+           *
+           * The two picsum origins are the placeholder photography, and they
+           * are **temporary**: they go the moment `src/lib/placeholders.ts`
+           * does. Note that this line was the missing half of Phase 4.5 —
+           * `img-src` was left at `'self' data: blob:` while every page
+           * started loading images from that CDN, so on a deployed origin the
+           * placeholders were blocked and only the badge rendered. Locally
+           * there is no CSP header, which is why it read as fine.
+           *
+           * The Maps iframe is still not here and is not coming: `frame-src`
+           * exists for Turnstile only.
+           */
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            "script-src 'self'",
+            "script-src 'self' https://challenges.cloudflare.com",
             "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: blob:",
+            "img-src 'self' data: blob: https://picsum.photos https://fastly.picsum.photos",
             "font-src 'self'",
-            "connect-src 'self'",
+            "connect-src 'self' https://challenges.cloudflare.com",
+            "frame-src https://challenges.cloudflare.com",
+            // The form posts to this origin's own function and nowhere else.
             "form-action 'self'",
             "frame-ancestors 'none'",
             "base-uri 'self'",

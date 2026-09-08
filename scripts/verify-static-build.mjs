@@ -9,13 +9,20 @@
  * `integrations: [keystatic()]` away from being false, and the failure is
  * invisible — the site still works, it just also ships a CMS.
  *
- * So it is a gate. Three checks, all on the real build output:
+ * Phase 5 spends exactly one function on the contact form, so the claim is now
+ * narrower and the gate had to get sharper to keep meaning anything: it is no
+ * longer "there are no functions" but "there is one, and only these routes
+ * reach it". The adapter bundles every on-demand route into a single
+ * `_render.func`, so counting functions would not notice a second one — the
+ * routing table is where a new dynamic route actually shows up.
  *
- *   1. `.vercel/output/functions` is empty or absent. Phase 5 adds exactly one
- *      function, for the contact form, and this list is where that gets
- *      reviewed rather than assumed.
- *   2. No built route is a Keystatic route.
- *   3. Nothing in the built assets mentions Keystatic — a stray import would
+ * So it is a gate. Four checks, all on the real build output:
+ *
+ *   1. `.vercel/output/functions` holds nothing but the functions named below.
+ *   2. Nothing is routed to a function except the routes named below —
+ *      `/api/contact` plus the two the adapter always emits for itself.
+ *   3. No built route is a Keystatic or API route in the static output.
+ *   4. Nothing in the built assets mentions Keystatic — a stray import would
  *      pull the admin bundle into a page.
  *
  * Run after `bun run build`.
@@ -24,8 +31,10 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 
+import { staticRoot } from './lib/dist.mjs';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const dist = resolve(root, 'dist');
+const dist = staticRoot(root);
 const vercelOutput = resolve(root, '.vercel/output');
 
 let failures = 0;
@@ -40,18 +49,55 @@ if (!existsSync(dist)) {
 }
 
 /**
- * The functions Phase 5 is allowed to add. Until then the deployed site is
- * entirely static, which is the whole reason Keystatic runs locally.
+ * The one function the deployed site carries.
+ *
+ * `@astrojs/vercel` bundles every on-demand route into this single function, so
+ * the name is the adapter's rather than the route's — which is exactly why the
+ * routing check below exists as well.
  */
-const ALLOWED_FUNCTIONS = [];
+const ALLOWED_FUNCTIONS = ['_render.func'];
+
+/**
+ * The routes allowed to reach it.
+ *
+ * `/api/contact` is Phase 5's contact endpoint. The other two are the adapter's
+ * own: `_server-islands` is emitted whether or not the site uses one, and
+ * `_image` is Astro's image endpoint. Neither is reachable as a page.
+ *
+ * Anything else routed to a function is a new on-demand route, and this is the
+ * line that has to be edited — deliberately, in a diff somebody reviews — for
+ * one to ship.
+ */
+const ALLOWED_FUNCTION_ROUTES = [
+  '^/api/contact$',
+  '^/_server-islands/([^/]+?)$',
+  '^/_image$',
+];
 
 const functionsDir = resolve(vercelOutput, 'functions');
 if (existsSync(functionsDir)) {
   for (const name of readdirSync(functionsDir)) {
     if (!ALLOWED_FUNCTIONS.includes(name)) {
-      fail(`.vercel/output/functions/${name} — the production build should carry no serverless function`);
+      fail(`.vercel/output/functions/${name} — not a function this site is meant to deploy`);
     }
   }
+}
+
+const configPath = resolve(vercelOutput, 'config.json');
+if (existsSync(configPath)) {
+  const routes = JSON.parse(readFileSync(configPath, 'utf8')).routes ?? [];
+  for (const route of routes) {
+    // `dest` naming a function, rather than a file, is what makes a route dynamic.
+    if (typeof route.dest !== 'string' || route.dest.includes('.')) continue;
+    if (!ALLOWED_FUNCTION_ROUTES.includes(route.src)) {
+      fail(
+        `${route.src} -> ${route.dest} — an on-demand route this build is not meant to have. ` +
+          'Add it to ALLOWED_FUNCTION_ROUTES only if it is meant to be a function.',
+      );
+    }
+  }
+} else if (existsSync(functionsDir)) {
+  fail('.vercel/output/config.json is missing, so the routing table cannot be checked');
 }
 
 function walk(dir, out = []) {
@@ -86,7 +132,8 @@ for (const file of built.filter((f) => TEXTUAL.has(extname(f)))) {
 }
 
 console.log(
-  `\nstatic build: ${built.length} files, ${ALLOWED_FUNCTIONS.length} function(s) allowed, ` +
+  `\nstatic build: ${built.length} files, ${ALLOWED_FUNCTIONS.length} function(s) and ` +
+  `${ALLOWED_FUNCTION_ROUTES.length} dynamic route(s) allowed, ` +
   `${failures} problem${failures === 1 ? '' : 's'}.`,
 );
 if (failures) process.exit(1);

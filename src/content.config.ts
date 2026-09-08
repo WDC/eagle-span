@@ -301,6 +301,13 @@ const careers = defineCollection({
           }),
         )
         .default([]),
+      /*
+       * The same two fields the contact page carries, for the same reason: the
+       * copy around a form is copy, and an editor changing what the shop says
+       * to an applicant should not be editing the function that emails it.
+       */
+      formIntro: z.string().min(1).max(320),
+      formSuccess: z.string().min(1).max(320),
     }),
 });
 

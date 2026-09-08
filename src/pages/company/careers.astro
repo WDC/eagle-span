@@ -2,6 +2,7 @@
 import { render } from 'astro:content';
 
 import BaseLayout from '~/layouts/BaseLayout.astro';
+import Form from '~/components/forms/Form.astro';
 import PageHeader from '~/components/PageHeader.astro';
 import { getSingleton } from '~/lib/content.ts';
 import { PAGES, pageCrumbs } from '~/lib/routes.ts';
@@ -16,6 +17,11 @@ import { PAGES, pageCrumbs } from '~/lib/routes.ts';
  * can never expire and cannot be dated — worse than not being there. If the
  * client wants indexed listings the schema grows three fields first, and the
  * node follows from them rather than from a guess.
+ *
+ * The application form posts to the same `/api/contact` function the service
+ * request does, under a different form kind. Two routes would have doubled the
+ * spam screening and the delivery fan-out to save a switch; see the header of
+ * `src/pages/api/contact.ts`.
  */
 const page = await getSingleton('careers');
 const { Content } = await render(page);
@@ -73,6 +79,13 @@ const EMPLOYMENT_LABEL = {
         <p class="l-rail__mark u-label">Note</p>
         <div class="l-rail__body">
           <Content />
+
+          <Form
+            kind="careers"
+            heading="Send a resume"
+            intro={page.data.formIntro}
+            success={page.data.formSuccess}
+          />
         </div>
       </div>
     </div>

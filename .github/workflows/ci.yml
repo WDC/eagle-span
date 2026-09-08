@@ -95,6 +95,14 @@ jobs:
       - name: Motion
         run: bun run verify:motion
 
+      # The forms are rendered from a manifest that the endpoint validates
+      # against, so those two cannot drift. This is the third party: that the
+      # page actually rendered the form, with a real method and action, so it
+      # still submits with no JavaScript — the failure every other check misses
+      # because the enhancement submits it anyway.
+      - name: Forms
+        run: bun run verify:forms
+
       - name: Link check
         uses: lycheeverse/lychee-action@v2
         with:
@@ -120,11 +128,11 @@ jobs:
           # real photographs land and the module is deleted.
           args: >-
             --no-progress --include-fragments
-            --root-dir "$GITHUB_WORKSPACE/dist"
+            --root-dir "$GITHUB_WORKSPACE/dist/client"
             --exclude '^https://www\.eaglespancorp\.com'
             --exclude '^https://(fastly\.)?picsum\.photos'
-            --exclude-path dist/fonts/OFL.txt
-            dist
+            --exclude-path dist/client/fonts/OFL.txt
+            dist/client
           fail: true
 
   deployed:

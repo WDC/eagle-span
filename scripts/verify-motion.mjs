@@ -43,6 +43,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, extname, relative, resolve } from 'node:path';
 
+import { staticRoot } from './lib/dist.mjs';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Comments explain a rule; they are not the rule. */
@@ -200,7 +202,7 @@ function main() {
 
   /* ---- 5: the built homepage rests in spec ----------------------------- */
 
-  const home = resolve(root, 'dist/index.html');
+  const home = resolve(staticRoot(root), 'index.html');
   if (!existsSync(home)) {
     console.error('dist/index.html is missing. Run `bun run build` first.');
     process.exit(1);
@@ -214,7 +216,7 @@ function main() {
    * correctly and the morph just never happens, so the built output is the only
    * place it shows.
    */
-  for (const page of walkHtml(resolve(root, 'dist'))) {
+  for (const page of walkHtml(staticRoot(root))) {
     const source = readFileSync(page, 'utf8');
     if (/\stransition:name=/.test(source)) {
       fail(
