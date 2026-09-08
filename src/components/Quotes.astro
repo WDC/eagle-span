@@ -1,0 +1,146 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+import SectionHead from '~/components/SectionHead.astro';
+
+/*
+ * What customers said, as quotes on a page.
+ *
+ * Lifted out of `index.astro` unchanged in substance so the offering pages and
+ * the fleet page can carry it too — the live site puts testimonials on every
+ * interior page and it is the only social proof the site has.
+ *
+ * No `Review` nodes, and that is a decision rather than an omission. Google's
+ * structured-data policy disallows review markup a business writes about
+ * itself, and the Phase 0 crawl found the live homepage rendering the literal
+ * placeholder "Position, Company name" over a reviewer's name — the exact
+ * failure that markup would have published into a search result. Attribution is
+ * real or it is absent.
+ *
+ * `id` is a prop because a page can hold this band once and the homepage's
+ * anchor is a navigation destination: the Company panel links `/#testimonials`,
+ * which is the URL the live site's own menu uses.
+ */
+interface Props {
+  items: readonly CollectionEntry<'testimonials'>[];
+  id?: string | undefined;
+  heading?: string | undefined;
+  kicker?: string | undefined;
+  lede?: string | undefined;
+}
+
+const {
+  items,
+  id = 'testimonials',
+  heading = 'What customers say',
+  kicker = 'Said',
+  lede,
+} = Astro.props;
+---
+
+{
+  items.length > 0 && (
+    <section class="l-band l-band--wash" aria-labelledby={`${id}-heading`} {id}>
+      <div class="l-page">
+        <SectionHead {kicker} {heading} id={`${id}-heading`} {lede} />
+
+        <ul class="quotes">
+          {items.map((entry) => (
+            <li class="c-panel quotes__item u-reveal-item">
+              <figure class="c-quote">
+                {/*
+                  Five marks, drawn rather than typed. The live site sets five
+                  star glyphs and no rating anywhere in the markup, which tells
+                  a screen reader “star star star star star”. These are one
+                  `aria-hidden` row with the rating in words beside it.
+                */}
+                <p class="quotes__rating">
+                  <span class="quotes__stars" aria-hidden="true">
+                    {[0, 1, 2, 3, 4].map(() => (
+                      <svg viewBox="0 0 20 20" class="quotes__star">
+                        <path
+                          d="M10 1.6l2.47 5.28 5.53.74-4.06 3.98 1.02 5.8L10 14.63 5.04 17.4l1.02-5.8L2 7.62l5.53-.74z"
+                        />
+                      </svg>
+                    ))}
+                  </span>
+                  <span class="u-visually-hidden">Rated five out of five</span>
+                </p>
+
+                <blockquote>{entry.data.quote}</blockquote>
+
+                {/*
+                  Name, then role and company only when they exist. There is no
+                  placeholder to fall back to, which is the point.
+                */}
+                <figcaption>
+                  <span class="quotes__name">{entry.data.name}</span>
+                  {(entry.data.role || entry.data.company) && (
+                    <span class="quotes__role">
+                      {[entry.data.role, entry.data.company].filter(Boolean).join(', ')}
+                    </span>
+                  )}
+                </figcaption>
+              </figure>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .quotes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: var(--s-4);
+  }
+
+  .quotes__item {
+    display: flex;
+    /* The wash is the band; a panel on it has to be the lighter surface. */
+    background: var(--c-ground);
+  }
+
+  .quotes__rating {
+    display: flex;
+    align-items: center;
+    gap: 0.15em;
+    margin-block-end: var(--s-3);
+  }
+
+  /*
+   * Amber, not the target green and not the signal red. Both of those mean
+   * something specific on this site — in spec, and safety — and a rating is
+   * neither. It is a mark rather than text, which is the one place
+   * `--c-amber` is allowed.
+   */
+  .quotes__stars {
+    /*
+     * `inline-flex`, not the inherited inline: global.css sets `svg` to
+     * `display: block` so an icon cannot sit on a text baseline it was never
+     * drawn for, and five block SVGs in a span are five stacked stars.
+     */
+    display: inline-flex;
+    gap: 0.15em;
+  }
+
+  /*
+   * `fill`, not `color` through `currentColor`. Amber is a mark colour and
+   * verify:tokens will not let it near a `color:` declaration — correctly, it
+   * does not clear AA as text on every ground this band can sit on. A filled
+   * shape is not text and `fill` is how you say so in CSS.
+   */
+  .quotes__star {
+    inline-size: 1rem;
+    block-size: 1rem;
+    fill: var(--c-amber);
+  }
+
+  .quotes__name { display: block; font-weight: 620; color: var(--c-ink); }
+  .quotes__role { display: block; font-size: var(--t-fine); color: var(--c-ink-3); }
+</style>

@@ -1,0 +1,210 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+import Figure from '~/components/Figure.astro';
+import Icon from '~/components/Icon.astro';
+import { placeholderAt } from '~/lib/placeholders.ts';
+import { entryPath } from '~/lib/routes.ts';
+
+/*
+ * A grid of offerings as cards, with their own photograph.
+ *
+ * The homepage had the only card grid on the site and the comment above it
+ * said why: "these five are the things a visitor is choosing between. An index
+ * of everything is still a list of hairline rows". That reasoning holds for an
+ * index page. It does not hold for the bottom of a service page, where the
+ * reader has just finished reading about one job and the question is which of
+ * the others applies to them — the live site answers that with five cards and
+ * this answered it with nothing at all.
+ *
+ * So the grid moves out of the homepage and becomes the thing three templates
+ * share. It carries the entry's real photograph now, which is the difference
+ * between a card and a row: the picture is the reason to make it a card.
+ *
+ * `compact` drops the photograph and keeps the icon, for the places where a
+ * band of fourteen pictures would be more picture than page — a cross-sell at
+ * the foot of a page the reader is already deep into.
+ */
+type Offering = CollectionEntry<'services' | 'repairs'>;
+
+interface Props {
+  collection: 'services' | 'repairs';
+  entries: readonly Offering[];
+  /** Icon and label only. Half the height, and no second photograph to load. */
+  compact?: boolean | undefined;
+  /** Marks the entry the reader is already on, when the grid includes it. */
+  current?: string | undefined;
+}
+
+const { collection, entries, compact = false, current } = Astro.props;
+---
+
+<ul class:list={['cardgrid', compact && 'cardgrid--compact']}>
+  {
+    entries.map((entry) => {
+      const href = entryPath(collection, entry.id);
+      const alt = entry.data.heroAlt ?? `${entry.data.navLabel} at the Charlotte shop`;
+      const isCurrent = entry.id === current;
+
+      return (
+        <li class="cardgrid__item u-reveal-item">
+          <article class:list={['c-panel c-panel--link card', isCurrent && 'card--current']}>
+            {!compact && (
+              <Figure
+                class="card__shot"
+                image={entry.data.hero ?? placeholderAt(`${collection}-${entry.id}`, 'card', alt)}
+                {alt}
+                ratio="16 / 10"
+                sizes="(width >= 64rem) 22rem, (width >= 40rem) 45vw, 92vw"
+                zoom
+              />
+            )}
+
+            <div class="card__body">
+              <p class="card__icon" aria-hidden="true">
+                <Icon name={entry.id} />
+              </p>
+
+              <h3 class="card__title">
+                {/*
+                  The whole card is the click target: the interactive-panel
+                  class lays a pseudo-element over the surface. The accessible
+                  name is still the words in the heading rather than “read
+                  more”.
+                */}
+                <a class="c-panel__link" href={href} aria-current={isCurrent ? 'page' : undefined}>
+                  {entry.data.navLabel}
+                </a>
+              </h3>
+
+              <p class="card__summary">{entry.data.summary}</p>
+
+              <p class="card__more u-label">
+                {isCurrent ? 'You are here' : 'Read more'}
+                {!isCurrent && (
+                  <span class="c-arrow" aria-hidden="true">
+                    →
+                  </span>
+                )}
+              </p>
+            </div>
+          </article>
+        </li>
+      );
+    })
+  }
+</ul>
+
+<style>
+  .cardgrid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    /*
+     * `auto-fit`, not `auto-fill`. A related band holds three cards in a track
+     * wide enough for four, and auto-fill keeps the fourth column empty — three
+     * cards huddled against the left edge with a hole beside them. auto-fit
+     * collapses the empty track and the three share the width.
+     */
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: var(--s-4);
+  }
+
+  .cardgrid--compact { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+
+  .cardgrid__item { display: flex; }
+
+  /*
+   * The hover lift, the focus ring and the whole-surface click target all come
+   * from `.c-panel--link` — this only turns the panel into a column and takes
+   * its padding off, because the photograph runs to the card's edge and the
+   * text does not.
+   */
+  .card {
+    display: flex;
+    flex-direction: column;
+    inline-size: 100%;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .card__shot { margin: 0; }
+
+  .card__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    padding: var(--pad-panel);
+    /* Pushes `.card__more` to the bottom edge whatever the summary's length. */
+    flex: 1;
+  }
+
+  .card__icon {
+    display: grid;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    border-radius: var(--r-2);
+    background: var(--c-wash-blue);
+    color: var(--c-blue-deep);
+    transition: background-color var(--d-fast) var(--e-out), color var(--d-fast) var(--e-out);
+  }
+
+  /*
+   * On a card with a photograph the tile straddles the edge between the two, so
+   * the picture and the text read as one object rather than as a picture with a
+   * caption under it.
+   */
+  .cardgrid:not(.cardgrid--compact) .card__icon {
+    margin-block-start: calc(var(--s-5) * -1);
+    border: var(--hairline) solid var(--c-rule);
+    background: var(--c-ground);
+  }
+
+  .card:hover .card__icon,
+  .card:focus-within .card__icon {
+    background: var(--c-wash-green);
+    color: var(--c-target-ink);
+  }
+
+  .card__title {
+    font-size: var(--t-h3);
+    letter-spacing: var(--ls-heading);
+    margin: 0;
+  }
+
+  /*
+   * No underline on the title: the whole card is the target and the hover
+   * state is the card's, so an underline here would advertise a second,
+   * smaller link that does the same thing.
+   */
+  .card__title a { text-decoration: none; }
+
+  .card__summary {
+    color: var(--c-ink-2);
+    font-size: var(--t-fine);
+    margin: 0;
+  }
+
+  .card__more {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    margin-block-start: auto;
+    padding-block-start: var(--s-2);
+    color: var(--c-ink-3);
+  }
+
+  .card:hover .card__more,
+  .card:focus-within .card__more { color: var(--c-target-ink); }
+
+  /* The page the reader is already on: marked, and not offered as a link out. */
+  .card--current {
+    border-color: var(--c-target);
+    background: var(--c-wash-green);
+  }
+
+  .card--current .card__icon { background: var(--c-ground); color: var(--c-target-ink); }
+  .card--current .card__more { color: var(--c-ink-3); }
+</style>

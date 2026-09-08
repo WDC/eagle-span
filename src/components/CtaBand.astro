@@ -1,0 +1,111 @@
+---
+import { PAGES } from '~/lib/routes.ts';
+import { site } from '~/site.config.ts';
+
+/*
+ * The closing action, on the dark ground.
+ *
+ * The live site puts one of these on every interior page — "Schedule Your
+ * Fleet Repairs Today: 704-392-9938", the number set as the heading — and it is
+ * the single most useful thing on those pages. This site had one, on the
+ * homepage, written inline; the fourteen offering pages ended on a list of
+ * related links and the reader had to scroll back up to the sticky panel or
+ * find the footer.
+ *
+ * `.t-deep` remaps the ground and ink tokens rather than restyling anything, so
+ * this band inverts by wearing the class. Phase 4.5's rule is two of these per
+ * page at most — the shop's own numbers, and the closing action — and this is
+ * the second one. A page that wanted a third would be a page with nothing to
+ * say between them.
+ */
+interface Props {
+  /** The heading. Should name the job, not the site. */
+  heading: string;
+  lede?: string | undefined;
+  kicker?: string | undefined;
+  /** The `aria-labelledby` target, unique on the page. */
+  id?: string | undefined;
+  /** The secondary action's label. The call is always the primary. */
+  secondaryLabel?: string | undefined;
+}
+
+const {
+  heading,
+  lede,
+  kicker = 'Next',
+  id = 'cta-band',
+  secondaryLabel = 'Schedule service',
+} = Astro.props;
+---
+
+<section class="l-band l-band--deep t-deep u-reveal-band" aria-labelledby={id}>
+  <div class="l-page cta">
+    <div class="cta__copy l-stack">
+      <p class="c-kicker">
+        <span class="c-tick" aria-hidden="true"></span>
+        <span class="u-label">{kicker}</span>
+      </p>
+      <h2 {id} class="cta__head">{heading}</h2>
+      {lede && <p class="cta__lede">{lede}</p>}
+    </div>
+
+    <div class="cta__actions">
+      <a class="c-btn c-btn--primary cta__call" href={`tel:${site.phoneE164}`} data-conversion="call">
+        <span class="u-tabular u-nowrap">{site.phoneDisplay}</span>
+      </a>
+      <a class="c-btn c-btn--ghost" href={PAGES.contact}>
+        {secondaryLabel}<span class="c-arrow" aria-hidden="true">→</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cta {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--s-5);
+    flex-wrap: wrap;
+  }
+
+  .cta__copy { max-inline-size: var(--measure); }
+
+  .cta__head {
+    font-size: var(--t-h2);
+    letter-spacing: var(--ls-heading);
+  }
+
+  .cta__lede { color: var(--c-ink-2); }
+
+  .cta__actions {
+    display: flex;
+    gap: var(--s-2);
+    flex-wrap: wrap;
+  }
+
+  /*
+   * The number is set larger than a button's label because it is the message,
+   * not the affordance. On the live site it is the heading; here it is the
+   * heading's answer, which is the same thing said in the right order.
+   *
+   * Inverted, too: on the dark ground the solid button has to be the light one,
+   * or the primary action is a near-black rectangle on a near-black band.
+   */
+  .cta__call {
+    font-size: var(--t-lead);
+    background: var(--c-on-deep);
+    border-color: var(--c-on-deep);
+    color: var(--c-deep);
+  }
+
+  .cta__call:hover {
+    background: var(--c-ground-3);
+    border-color: var(--c-ground-3);
+  }
+
+  @media (width < 44rem) {
+    .cta__actions { inline-size: 100%; }
+    .cta__actions > * { flex: 1 1 12rem; }
+  }
+</style>
