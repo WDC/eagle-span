@@ -206,10 +206,25 @@ collections (`services`, `repairs`, `articles`, `legal`, `faqs`, `testimonials`,
 writes to is the directory the build reads. **URL** paths are declared once in
 `src/lib/routes.ts`, which is the same idea for the other half of a page.
 
+All 30 crawled pages have been migrated: 5 services, 9 repairs, 7 articles, 2
+legal pages, 9 singletons, 35 FAQs, 3 testimonials and 3 accounts. The copy is
+the live site's, with the phone numbers replaced by tags, four over-length
+titles rewritten to the schema bound, and US spelling and typography made
+consistent.
+
+Two things need a person before launch. **The legal pages were rewritten rather
+than migrated** — the live ones are an unedited template naming AES Truck Repair
+of Springfield, MO — and the replacements have not been through legal review.
+**The national account list and the stat rail** are transcribed from a logo band
+and a paragraph, and both are claims a fleet customer acts on.
+
 See [`docs/phase-1-content-model.md`](docs/phase-1-content-model.md) for the
-schemas, the SEO bounds and what the migration inherits, and
+schemas, the SEO bounds and what the migration inherits,
 [`docs/phase-4-templates.md`](docs/phase-4-templates.md) for the templates, the
-JSON-LD graph and how `lastmod` is derived.
+JSON-LD graph and how `lastmod` is derived, and
+[`docs/phase-3-content.md`](docs/phase-3-content.md) for what the migration
+changed, the defects reading the copy turned up, and the decisions it left
+open.
 
 The homepage hero image is optional and **replaces** the thrust-angle diagram
 rather than stacking under it. The Keystatic field says so; `docs/phase-2-motion.md`

@@ -1,0 +1,3 @@
+question: What diagnostic values confirm that my alternator, not my batteries, is failing?
+answer: After fully charging the batteries to 12.6 V, start the engine and hold 1,500 rpm. If system voltage remains below 13.8 V, or ripple exceeds 500 mV under load, the alternator or its regulator is defective. A voltage drop test on both cables corroborates the finding and guides the repair.
+order: 20
