@@ -116,6 +116,17 @@ jobs:
           # --root-dir lets lychee resolve root-relative hrefs against the
           # built output rather than the filesystem root.
           #
+          # --index-files is what makes that resolution agree with how the site
+          # is actually served. Without it a link to a directory resolves to the
+          # directory, so a fragment check looks for the anchor in dist/client
+          # itself and never opens dist/client/index.html. That failed
+          # `/#testimonials` — the Company menu's own destination, and a real
+          # anchor on the homepage — twice on all thirty pages, because the
+          # header renders the menu once for the pointer and once for narrow
+          # viewports. It does not weaken the gate: a fragment that is genuinely
+          # not on the page it names still fails, which is the whole reason
+          # --include-fragments is on.
+          #
           # The production origin is excluded because every absolute URL in
           # the build (canonicals, the sitemap entries) points at the site
           # this repo is replacing. Resolving them against the current
@@ -133,11 +144,23 @@ jobs:
           # fire thirty-odd requests at one host and fail the build on its rate
           # limiter rather than on a broken link. The exclusion goes when the
           # real photographs land and the module is deleted.
+          #
+          # /api/contact is the action of both forms and the one on-demand route
+          # the deployed site carries. The adapter bundles it into
+          # .vercel/output/functions rather than emitting a file, so it cannot
+          # exist under dist/client by construction — this step checks the
+          # static output, not an origin, and there is nothing here for it to
+          # find. Excluding it costs no coverage: verify:static-build owns the
+          # invariant that matters (the routing table, so a second on-demand
+          # route fails) and verify:forms already checks that both forms render
+          # this action.
           args: >-
             --no-progress --include-fragments
             --root-dir "$GITHUB_WORKSPACE/dist/client"
+            --index-files index.html
             --exclude '^https://www\.eaglespancorp\.com'
             --exclude '^https://(fastly\.)?picsum\.photos'
+            --exclude '/api/contact$'
             --exclude-path dist/client/fonts/OFL.txt
             dist/client
           fail: true
